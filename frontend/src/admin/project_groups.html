@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup Work Groups & Members - SysRev</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="../shared/api.js"></script>
+  <style>
+    :root {
+      --ink: #1e293b;
+      --muted: #64748b;
+      --hairline: #e2e8f0;
+      --evidence: #3b82f6;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col font-sans text-slate-800" x-data="projectGroupsPage()" x-init="init()">
+
+  <header class="bg-white border-b border-[var(--hairline)] py-4 px-6 flex justify-between items-center shadow-sm">
+    <div class="flex items-center gap-3">
+      <span class="text-xl font-bold text-slate-900 tracking-tight">Sys<span class="text-[var(--evidence)]">Rev</span></span>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="text-sm text-[var(--muted)]">Project: <strong class="text-[var(--ink)]" x-text="projectTitle"></strong></span>
+      <button @click="logout" class="text-xs text-red-500 hover:underline">Sign out</button>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-4xl w-full mx-auto p-6 my-8 space-y-8">
+
+    <!-- PROGRESS STEPS WITH LINK TO GO BACK -->
+    <div class="flex items-center justify-between px-4">
+      <a :href="'new_project.html?project_id=' + projectId" class="flex items-center gap-2 group hover:opacity-100 transition cursor-pointer">
+        <span class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 group-hover:bg-slate-300 flex items-center justify-center font-semibold text-sm">1</span>
+        <span class="text-sm font-medium text-slate-600 group-hover:text-[var(--ink)] group-hover:underline">Project Details</span>
+      </a>
+      <div class="h-0.5 flex-1 bg-slate-200 mx-4"></div>
+      <div class="flex items-center gap-2">
+        <span class="w-8 h-8 rounded-full bg-[var(--evidence)] text-white flex items-center justify-center font-semibold text-sm">2</span>
+        <span class="text-sm font-semibold text-[var(--ink)]">Work Groups & Members</span>
+      </div>
+    </div>
+
+    <div x-show="error" x-transition class="p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg" x-text="error" style="display: none;"></div>
+
+    <div class="bg-white border border-[var(--hairline)] rounded-xl p-6 shadow-sm">
+      <h2 class="text-lg font-bold text-[var(--ink)] mb-1">Select Project Work Groups</h2>
+      <p class="text-xs text-[var(--muted)] mb-4">Select one or more work groups that will be active in this project.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <template x-for="wg in workGroups" :key="wg.id">
+          <div class="p-3 border rounded-lg transition relative cursor-pointer"
+               @click="toggleGroup(wg.id)"
+               :class="selectedGroupIds.includes(wg.id) ? 'border-[var(--evidence)] bg-blue-50/30' : 'border-[var(--hairline)] hover:border-slate-300'">
+            <div class="flex items-start gap-2.5">
+              <input type="checkbox" :value="wg.id" x-model="selectedGroupIds" @click.stop @change="saveGroups"
+                     class="mt-1 rounded text-[var(--evidence)] focus:ring-[var(--evidence)] border-[var(--hairline)]" />
+              <div>
+                <h3 class="text-sm font-semibold text-[var(--ink)]" x-text="wg.name"></h3>
+                <p class="text-xs text-[var(--muted)] mt-0.5" x-text="wg.description || 'No description provided.'"></p>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template x-if="workGroups.length === 0">
+          <p class="text-sm text-[var(--muted)] col-span-2 text-center py-4">No work groups registered in the system database.</p>
+        </template>
+      </div>
+    </div>
+
+    <div class="bg-white border border-[var(--hairline)] rounded-xl p-6 shadow-sm">
+      <div class="mb-4">
+        <h2 class="text-lg font-bold text-[var(--ink)]">Add Reviewers to Work Groups</h2>
+        <p class="text-xs text-[var(--muted)]">Search registered users and assign them to one of the active work groups selected above.</p>
+      </div>
+
+      <div class="flex gap-3 mb-4">
+        <input type="text" x-model="searchUser" placeholder="Search by name, email or institution..."
+               class="flex-1 border border-[var(--hairline)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--evidence)]" />
+      </div>
+
+      <div class="border border-[var(--hairline)] rounded-lg overflow-hidden max-h-80 overflow-y-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-xs font-semibold text-[var(--muted)] border-b border-[var(--hairline)] sticky top-0">
+              <th class="p-3">User info</th>
+              <th class="p-3">Institution</th>
+              <th class="p-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--hairline)] text-sm">
+            <template x-for="usr in filteredUsers()" :key="usr.id">
+              <tr class="hover:bg-slate-50/50 transition">
+                <td class="p-3">
+                  <div class="font-medium text-[var(--ink)]" x-text="usr.name"></div>
+                  <div class="text-xs text-[var(--muted)]" x-text="usr.email"></div>
+                </td>
+                <td class="p-3">
+                  <div class="text-slate-700" x-text="usr.institution || 'No Institution'"></div>
+                </td>
+                <td class="p-3 text-right">
+                  <button @click="addMember(usr.email)" :disabled="isAlreadyMember(usr.id) || !usr.active"
+                          class="text-xs px-3 py-1.5 rounded-lg border font-medium transition"
+                          :class="isAlreadyMember(usr.id) 
+                            ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed' 
+                            : 'border-blue-200 text-[var(--evidence)] hover:bg-blue-50'">
+                    <span x-text="isAlreadyMember(usr.id) ? 'Added' : '+ Add Member' "></span>
+                  </button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bg-white border border-[var(--hairline)] rounded-xl p-6 shadow-sm">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <h2 class="text-lg font-bold text-[var(--ink)]">Active Project Members</h2>
+          <p class="text-xs text-[var(--muted)]">List of collaborators currently assigned to work groups in this project.</p>
+        </div>
+        <span class="text-xs bg-slate-100 text-[var(--ink)] px-2.5 py-1 rounded-full font-medium">
+          Total Members: <span x-text="members.length"></span>
+        </span>
+      </div>
+
+      <div class="border border-[var(--hairline)] rounded-lg overflow-hidden">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-xs font-semibold text-[var(--muted)] border-b border-[var(--hairline)]">
+              <th class="p-3">Name</th>
+              <th class="p-3">Project Name</th>
+              <th class="p-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--hairline)] text-sm">
+            <template x-for="member in members" :key="member.id">
+              <tr class="hover:bg-slate-50/50 transition">
+                <td class="p-3">
+                  <div class="font-medium text-[var(--ink)]" x-text="getUserName(member.user_id)"></div>
+                  <div class="text-xs text-[var(--muted)]" x-text="getUserEmail(member.user_id)"></div>
+                </td>
+                <td class="p-3">
+                  <span class="inline-block text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-semibold" 
+                        x-text="getGroupName(member.work_group_id)"></span>
+                </td>
+                <td class="p-3 text-right">
+                  <button @click="removeMember(member)" class="text-xs text-red-600 hover:text-red-800 font-medium">
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            </template>
+            <template x-if="members.length === 0">
+              <tr>
+                <td colspan="3" class="p-6 text-center text-sm text-[var(--muted)]">
+                  No members added to this project yet. Use the sections above to select groups and add reviewers.
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- BOTTOM ACTIONS (CANCEL AND FINISH SETUP) -->
+      <div class="flex justify-end items-center gap-3 mt-8 pt-4 border-t border-[var(--hairline)]">
+        <button @click="cancelAndDestroyProject" class="border border-red-200 text-red-600 hover:bg-red-50 px-5 py-2.5 rounded-lg text-sm font-semibold transition">
+          Cancel Setup
+        </button>
+        <a href="dashboard_admin.html" class="bg-[var(--evidence)] text-white hover:bg-blue-600 px-6 py-2.5 rounded-lg text-sm font-semibold shadow transition">
+          Finish Project Setup
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    function projectGroupsPage() {
+      const safeGetUser = typeof getUser === 'function' ? getUser : () => ({ name: 'Guest' });
+      const safeGetToken = typeof getToken === 'function' ? getToken : () => null;
+
+      return {
+        projectId: '',
+        projectTitle: 'Loading project...',
+        searchUser: '',
+        error: '',
+        
+        workGroups: [], 
+        selectedGroupIds: [], 
+        
+        users: [],
+        members: [],
+        rawProjectData: null,
+
+        async init() {
+          const params = new URLSearchParams(window.location.search);
+          this.projectId = params.get('project_id');
+
+          if (!this.projectId) {
+            alert('No project ID found. Redirecting...');
+            window.location.href = 'dashboard_admin.html';
+            return;
+          }
+
+          if (!safeGetToken()) { 
+            window.location.href = '/index.html'; 
+            return; 
+          }
+
+          if (typeof api !== 'undefined') {
+            try {
+              await this.loadProjectDetails();
+              
+              await Promise.all([
+                this.loadAllWorkGroups().catch(e => console.error("WG General load failed:", e)),
+                this.loadUsers().catch(e => console.error("Users failed:", e)),
+                this.loadProjectMembers().catch(e => console.error("Members failed:", e))
+              ]);
+            } catch(e) { 
+              this.error = "Error loading initial page data."; 
+            }
+          } else {
+            this.error = "API service is unavailable.";
+          }
+        },
+
+        async loadProjectDetails() {
+          const project = await api.getProject(this.projectId);
+          if (!project) throw new Error("Project not found");
+
+          this.rawProjectData = project;
+          this.projectTitle = project.title || project.titulo || 'Untitled Project';
+          
+          if (project.work_groups || project.grupos_trabalho) {
+            const list = project.work_groups || project.grupos_trabalho;
+            this.selectedGroupIds = list.map(wg => wg.id);
+          }
+        },
+
+        async loadAllWorkGroups() {
+          try {
+            this.workGroups = await api.getWorkGroups();
+          } catch (e) {
+            this.error = "Error loading general work groups registry.";
+          }
+        },
+
+        async loadUsers() {
+          this.users = await api.getUsers();
+        },
+
+        async loadProjectMembers() {
+          try {
+            this.members = await api.listProjectMembers(this.projectId);
+          } catch (e) {
+            console.error("Could not load project members:", e);
+          }
+        },
+
+        filteredUsers() {
+          if (!this.users) return [];
+          if (!this.searchUser) return this.users.slice(0, 10);
+
+          const search = this.searchUser.toLowerCase();
+          return this.users.filter(u => 
+            (u.name && u.name.toLowerCase().includes(search)) || 
+            (u.email && u.email.toLowerCase().includes(search)) || 
+            (u.institution && u.institution.toLowerCase().includes(search))
+          );
+        },
+
+        isAlreadyMember(userId) {
+          if (!this.members) return false;
+          return this.members.some(m => m.user_id === userId);
+        },
+
+        getUserName(userId) {
+          if (!this.users) return 'Unknown User';
+          const u = this.users.find(usr => usr.id === userId);
+          return u ? u.name : 'Unknown User';
+        },
+
+        getUserEmail(userId) {
+          if (!this.users) return '';
+          const u = this.users.find(usr => usr.id === userId);
+          return u ? u.email : '';
+        },
+
+        getGroupName(groupId) {
+          const wg = this.workGroups.find(g => g.id === groupId);
+          return this.projectTitle || 'Unknown Project';
+          //return wg ? wg.name : 'Unknown Group';
+        },
+
+        toggleGroup(id) {
+          if (this.selectedGroupIds.includes(id)) {
+            this.selectedGroupIds = this.selectedGroupIds.filter(gId => gId !== id);
+          } else {
+            this.selectedGroupIds.push(id);
+          }
+          this.saveGroups();
+        },
+
+        async saveGroups() {
+          try {
+            this.error = '';
+            await api.updateProject(this.projectId, {
+              work_group_ids: this.selectedGroupIds
+            });
+          } catch (e) {
+            this.error = "Failed to associate work groups to project: " + e.message;
+          }
+        },
+
+        async addMember(email) {
+            try {
+                this.error = '';
+                await api.addProjectMember(this.projectId, {
+                  user_email: email,
+                  role: 'reviewer'
+                });
+                await this.loadProjectMembers(); 
+            } catch (e) {
+                alert("Error adding member: " + e.message);
+            }
+        },
+
+        async removeMember(member) {
+            if (!confirm("Are you sure you want to remove this member from the project?")) return;
+            try {
+                this.error = '';
+                const userId = member.user_id || (member.user && member.user.id) || member.id;
+                
+                if (!userId) {
+                    alert("Could not identify the user ID.");
+                    return;
+                }
+
+                await api.deleteProjectMember(this.projectId, userId);
+                await this.loadProjectMembers(); 
+            } catch (e) {
+                alert("Error removing member: " + e.message);
+            }
+        },
+
+        // EXCLUI O PROJETO SE CONFIRMADO E VOLTA PARA A LISTAGEM
+        async cancelAndDestroyProject() {
+          const confirmed = confirm("Are you sure you want to abandon project creation? This will delete the project data permanently.");
+          if (!confirmed) return;
+
+          try {
+            this.error = '';
+            
+            // Verifica se o seu arquivo api.js já possui o método implementado
+            if (typeof api.deleteProject === 'function') {
+              await api.deleteProject(this.projectId);
+            } else {
+              // Caso não tenha no api.js, fazemos a requisição direta usando o token de autenticação ativo
+              const token = safeGetToken();
+              const response = await fetch(`/sysrev/projects/${this.projectId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': token ? `Bearer ${token}` : '',
+                  'Content-Type': 'application/json'
+                }
+              });
+
+              if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.message || `Server responded with status ${response.status}`);
+              }
+            }
+
+            // Redireciona para o painel de administração após apagar com sucesso
+            window.location.href = 'dashboard_admin.html';
+          } catch (e) {
+            alert("Error trying to cancel and delete the project: " + e.message);
+          }
+        },
+
+        logout() { 
+          if (typeof logout === 'function') logout();
+          else window.location.href = '/index.html';
+        }
+      };
+    }
+  </script>
+</body>
+</html>

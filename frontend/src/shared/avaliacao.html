@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Avaliação de documento</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+<link rel="stylesheet" href="../shared/style.css" />
+<script src="../shared/api.js"></script>
+</head>
+<body class="min-h-screen" x-data="avaliacaoForm()" x-init="load()">
+
+  <div class="max-w-3xl mx-auto px-6 py-8">
+    <a href="dashboard.html" class="text-sm text-[var(--muted)] hover:text-[var(--ink)]">← Voltar ao painel</a>
+
+    <template x-if="carregando">
+      <p class="text-[var(--muted)] text-sm mt-6">Carregando avaliação…</p>
+    </template>
+
+    <template x-if="erro">
+      <div class="card p-4 mt-6 border-[var(--flag)] bg-[var(--flag-soft)] text-[var(--flag)] text-sm" x-text="erro"></div>
+    </template>
+
+    <template x-if="!carregando && !erro">
+      <div class="mt-6">
+        <div class="flex items-center justify-between mb-6">
+          <h1 class="font-display text-2xl font-semibold">Formulário de avaliação</h1>
+          <span class="text-xs text-[var(--muted)]" x-text="statusSalvamento"></span>
+        </div>
+
+        <form @submit.prevent="finalizar" class="card p-7 space-y-6">
+
+          <!-- Campos analíticos: MVP genérico (dinâmico virá do form_schema do projeto) -->
+          <div>
+            <label class="block text-sm font-medium mb-1.5">Notas de avaliação / anotações analíticas</label>
+            <textarea x-model="respostas.notas" rows="5"
+              class="w-full border border-[var(--hairline)] rounded-lg px-3 py-2.5 focus:border-[var(--evidence)] outline-none"
+              placeholder="Registre aqui os pontos relevantes conforme os critérios do protocolo (PRISMA/GT2)."></textarea>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1.5">Nível de confiança</label>
+            <input type="range" min="1" max="5" x-model="confianca" class="w-full accent-[var(--evidence)]" />
+            <p class="text-xs text-[var(--muted)] mt-1">Confiança: <span x-text="confianca"></span> / 5</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-2">Decisão</label>
+            <div class="flex gap-3">
+              <button type="button" @click="decisao = 'incluir'"
+                class="flex-1 py-2.5 rounded-lg border text-sm font-medium"
+                :class="decisao === 'incluir' ? 'bg-[var(--evidence-soft)] border-[var(--evidence)] text-[var(--evidence)]' : 'border-[var(--hairline)]'">
+                Incluir
+              </button>
+              <button type="button" @click="decisao = 'excluir'"
+                class="flex-1 py-2.5 rounded-lg border text-sm font-medium"
+                :class="decisao === 'excluir' ? 'bg-[var(--flag-soft)] border-[var(--flag)] text-[var(--flag)]' : 'border-[var(--hairline)]'">
+                Excluir
+              </button>
+              <button type="button" @click="decisao = 'duvida'"
+                class="flex-1 py-2.5 rounded-lg border text-sm font-medium"
+                :class="decisao === 'duvida' ? 'bg-[var(--gold-soft)] border-[var(--gold)] text-[var(--gold)]' : 'border-[var(--hairline)]'">
+                Dúvida
+              </button>
+            </div>
+          </div>
+
+          <template x-if="decisao === 'excluir'">
+            <div>
+              <label class="block text-sm font-medium mb-1.5">Motivo da exclusão</label>
+              <input x-model="motivoExclusao" class="w-full border border-[var(--hairline)] rounded-lg px-3 py-2.5 focus:border-[var(--evidence)] outline-none"
+                placeholder="Ex.: fora do escopo temático, tipo de documento não elegível…" />
+            </div>
+          </template>
+
+          <p x-show="erroSalvar" x-text="erroSalvar" class="text-sm text-[var(--flag)]"></p>
+
+          <div class="flex justify-between items-center pt-2 border-t border-[var(--hairline)]">
+            <button type="button" @click="salvarRascunho" class="btn-secondary text-sm">Salvar rascunho</button>
+            <button type="submit" class="btn-primary text-sm" :disabled="!decisao">Finalizar avaliação</button>
+          </div>
+        </form>
+      </div>
+    </template>
+  </div>
+
+<script>
+function avaliacaoForm() {
+  return {
+    carregando: true,
+    erro: '',
+    erroSalvar: '',
+    statusSalvamento: '',
+    atribuicaoId: new URLSearchParams(window.location.search).get('atribuicao'),
+    respostas: { notas: '' },
+    confianca: 3,
+    decisao: null,
+    motivoExclusao: '',
+    _timer: null,
+
+    async load() {
+      if (!getToken()) { window.location.href = '../index.html'; return; }
+      if (!this.atribuicaoId) { this.erro = 'Atribuição não especificada.'; this.carregando = false; return; }
+      try {
+        const revisao = await api.obterRevisao(this.atribuicaoId);
+        this.respostas = revisao.respostas_json && Object.keys(revisao.respostas_json).length
+          ? revisao.respostas_json : { notas: '' };
+        this.decisao = revisao.decisao;
+      } catch (e) {
+        this.erro = e.message;
+      } finally {
+        this.carregando = false;
+        this.$watch('respostas', () => this.agendarAutosave());
+        this.$watch('confianca', () => this.agendarAutosave());
+      }
+    },
+
+    agendarAutosave() {
+      clearTimeout(this._timer);
+      this._timer = setTimeout(() => this.salvarRascunho(), 1500);
+    },
+
+    async salvarRascunho() {
+      this.erroSalvar = '';
+      this.statusSalvamento = 'Salvando…';
+      try {
+        await api.salvarRevisao(this.atribuicaoId, {
+          respostas_json: this.respostas,
+          decisao: this.decisao,
+          motivo_exclusao: this.motivoExclusao || null,
+          confianca: Number(this.confianca),
+          finalizada: false,
+        });
+        this.statusSalvamento = 'Rascunho salvo';
+      } catch (e) {
+        this.erroSalvar = e.message;
+        this.statusSalvamento = '';
+      }
+    },
+
+    async finalizar() {
+      this.erroSalvar = '';
+      try {
+        await api.salvarRevisao(this.atribuicaoId, {
+          respostas_json: this.respostas,
+          decisao: this.decisao,
+          motivo_exclusao: this.motivoExclusao || null,
+          confianca: Number(this.confianca),
+          finalizada: true,
+        });
+        window.location.href = 'dashboard.html';
+      } catch (e) {
+        this.erroSalvar = e.message;
+      }
+    },
+  };
+}
+</script>
+</body>
+</html>

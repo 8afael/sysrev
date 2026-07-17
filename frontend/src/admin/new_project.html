@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create New Project - SysRev</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="../shared/api.js"></script>
+  <style>
+    :root {
+      --ink: #1e293b;
+      --muted: #64748b;
+      --hairline: #e2e8f0;
+      --evidence: #3b82f6;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col font-sans text-slate-800" x-data="newProjectPage()">
+
+  <header class="bg-white border-b border-[var(--hairline)] py-4 px-6 flex justify-between items-center shadow-sm">
+    <div class="flex items-center gap-3">
+      <span class="text-xl font-bold text-slate-900 tracking-tight">Sys<span class="text-[var(--evidence)]">Rev</span></span>
+      <span class="text-xs px-2 py-1 bg-slate-100 rounded text-[var(--muted)] font-medium">v1.0</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="text-sm text-[var(--muted)]">Welcome, <strong class="text-[var(--ink)]" x-text="user?.name"></strong></span>
+      <button @click="logout" class="text-xs text-red-500 hover:underline">Sign out</button>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-4xl w-full mx-auto p-6 my-8">
+
+    <div class="mb-6">
+      <a href="dashboard_admin.html" class="inline-flex items-center gap-1.5 text-xs text-[var(--muted)] hover:text-[var(--evidence)] transition font-medium group">
+        <svg xmlns="http://www.w3.org/2000/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 transform group-hover:-translate-x-0.5 transition-transform">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+        </svg>
+        Back to Dashboard
+      </a>
+    </div>
+    <!-- FIM DO BLOCO ADICIONADO -->
+    <div class="flex items-center justify-between mb-8 px-4">
+      <div class="flex items-center gap-2">
+        <span class="w-8 h-8 rounded-full bg-[var(--evidence)] text-white flex items-center justify-center font-semibold text-sm">1</span>
+        <span class="text-sm font-semibold text-[var(--ink)]">Project Details</span>
+      </div>
+      <div class="h-0.5 flex-1 bg-slate-200 mx-4"></div>
+      <div class="flex items-center gap-2 opacity-50">
+        <span class="w-8 h-8 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-semibold text-sm">2</span>
+        <span class="text-sm font-medium text-slate-500">Work Groups & Members</span>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-[var(--hairline)] p-8">
+      <h1 class="text-2xl font-bold text-[var(--ink)] mb-2">Create New Project</h1>
+      <p class="text-sm text-[var(--muted)] mb-6">Enter the primary details for your systematic review project.</p>
+
+      <div x-show="error" x-transition class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg" x-text="error"></div>
+
+      <form @submit.prevent="createProject" class="space-y-6">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Project Title</label>
+            <input type="text" x-model="project.title" required placeholder="e.g. Impact of AI on Global Healthcare"
+                   class="w-full border border-[var(--hairline)] rounded-lg px-4 py-2.5 outline-none focus:border-[var(--evidence)] focus:ring-2 focus:ring-blue-100 transition" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Type</label>
+            <select x-model="project.type" required
+                    class="w-full border border-[var(--hairline)] rounded-lg px-3 py-2.5 outline-none focus:border-[var(--evidence)] focus:ring-2 focus:ring-blue-100 bg-white transition">
+              <option value="scientific">Scientific</option>
+              <option value="technical">Technical</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Description</label>
+          <textarea x-model="project.description" rows="4" placeholder="Brief explanation of the project's scope, goals, and methodologies..."
+                    class="w-full border border-[var(--hairline)] rounded-lg px-4 py-2.5 outline-none focus:border-[var(--evidence)] focus:ring-2 focus:ring-blue-100 transition"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Lead Institution</label>
+            <input type="text" x-model="project.lead_institution" list="institutions-list" placeholder="Start typing institution..."
+                   class="w-full border border-[var(--hairline)] rounded-lg px-4 py-2.5 outline-none focus:border-[var(--evidence)] transition" />
+            <datalist id="institutions-list">
+              <template x-for="inst in institutions" :key="inst">
+                <option :value="inst"></option>
+              </template>
+            </datalist>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Initial Status</label>
+            <select x-model="project.status" disabled
+                    class="w-full border border-[var(--hairline)] bg-slate-50 rounded-lg px-3 py-2.5 outline-none text-slate-500 font-medium">
+              <option value="draft">Draft (Assigned on creation)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-[var(--hairline)]">
+          
+          <div>
+            <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Target Countries</label>
+            <div class="border border-[var(--hairline)] rounded-lg p-3 bg-white max-h-48 overflow-y-auto space-y-2 shadow-sm">
+              <input type="text" x-model="searchCountry" placeholder="Search country..." 
+                     class="w-full text-xs border border-[var(--hairline)] rounded px-2 py-1.5 mb-2 outline-none focus:border-[var(--evidence)] bg-slate-50" />
+              
+              <template x-for="country in filteredCountries()" :key="country.id">
+                <label class="flex items-center gap-2.5 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded transition">
+                  <input type="checkbox" :value="country.id" x-model="project.country_ids"
+                         class="rounded text-[var(--evidence)] focus:ring-[var(--evidence)] border-[var(--hairline)]" />
+                  <span class="text-slate-700" x-text="country.name"></span>
+                  <span class="text-xs text-[var(--muted)] ml-auto" x-text="country.code"></span>
+                </label>
+              </template>
+            </div>
+            <p class="text-xs text-[var(--muted)] mt-1.5">Selected: <span class="font-semibold text-[var(--ink)]" x-text="project.country_ids.length"></span> countries</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Target Languages</label>
+            <div class="border border-[var(--hairline)] rounded-lg p-3 bg-white max-h-48 overflow-y-auto space-y-2 shadow-sm">
+              <input type="text" x-model="searchLanguage" placeholder="Search language..." 
+                     class="w-full text-xs border border-[var(--hairline)] rounded px-2 py-1.5 mb-2 outline-none focus:border-[var(--evidence)] bg-slate-50" />
+
+              <template x-for="lang in filteredLanguages()" :key="lang.id">
+                <label class="flex items-center gap-2.5 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded transition">
+                  <input type="checkbox" :value="lang.id" x-model="project.language_ids"
+                         class="rounded text-[var(--evidence)] focus:ring-[var(--evidence)] border-[var(--hairline)]" />
+                  <span class="text-slate-700" x-text="lang.name"></span>
+                  <span class="text-xs text-[var(--muted)] ml-auto" x-text="lang.code.toUpperCase()"></span>
+                </label>
+              </template>
+            </div>
+            <p class="text-xs text-[var(--muted)] mt-1.5">Selected: <span class="font-semibold text-[var(--ink)]" x-text="project.language_ids.length"></span> languages</p>
+          </div>
+
+        </div>
+
+        <div class="flex justify-between items-center pt-6 border-t border-[var(--hairline)]">
+          <div class="text-xs text-[var(--muted)]">
+            Created by: <span class="font-medium text-[var(--ink)]" x-text="user?.name || 'Unknown'"></span>
+          </div>
+          
+          <!-- MODIFIQUE ESTA SUB-DIV DOS BOTÕES (Início da Alteração 2) -->
+          <div class="flex items-center gap-3">
+            <a href="dashboard_admin.html" 
+               class="px-5 py-2.5 rounded-lg text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition">
+              Cancel
+            </a>
+            <button type="submit" :disabled="saving"
+                    class="bg-[var(--evidence)] text-white hover:bg-blue-600 disabled:opacity-50 px-6 py-2.5 rounded-lg text-sm font-medium shadow transition flex items-center gap-2">
+              <span x-show="!saving">Proceed to Step 2</span>
+              <span x-show="saving" class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    function newProjectPage() {
+      return {
+        user: getUser(),
+        saving: false,
+        error: '',
+        projectId: null, // Guardará o ID se estivermos editando/voltando
+        
+        institutions: [],
+        dbCountries: [],
+        dbLanguages: [],
+        
+        searchCountry: '',
+        searchLanguage: '',
+
+        project: {
+          title: '',
+          description: '',
+          type: 'scientific',
+          lead_institution: '',
+          status: 'draft',
+          country_ids: [],
+          language_ids: [],
+          work_group_ids: [],
+          members: []
+        },
+
+        async init() {
+          if (!getToken()) { window.location.href = '/index.html'; return; }
+          
+          // Captura se veio um ID de projeto na URL (?project_id=...)
+          const params = new URLSearchParams(window.location.search);
+          this.projectId = params.get('project_id');
+
+          await Promise.all([
+            this.loadInstitutions(),
+            this.loadCountries(),
+            this.loadLanguages()
+          ]);
+
+          // Se veio um ID na URL, carrega os dados já salvos do projeto
+          if (this.projectId) {
+            await this.loadExistingProject();
+          }
+        },
+
+        async loadExistingProject() {
+          try {
+            const existing = await api.getProject(this.projectId);
+            if (existing) {
+              this.project.title = existing.title || existing.titulo || '';
+              this.project.description = existing.description || '';
+              this.project.type = existing.type || 'scientific';
+              this.project.lead_institution = existing.lead_institution || '';
+              this.project.status = existing.status || 'draft';
+              
+              // Mapeia os arrays de IDs vindos das relações do banco de dados se necessário
+              this.project.country_ids = existing.countries ? existing.countries.map(c => c.id) : (existing.country_ids || []);
+              this.project.language_ids = existing.languages ? existing.languages.map(l => l.id) : (existing.language_ids || []);
+              this.project.work_group_ids = existing.work_groups ? existing.work_groups.map(w => w.id) : (existing.work_group_ids || []);
+            }
+          } catch (e) {
+            this.error = "Failed to load existing project details.";
+          }
+        },
+
+        async loadInstitutions() {
+          try {
+            const users = await api.getUsers();
+            const list = users
+              .map(u => u.institution)
+              .filter(inst => inst && inst.trim() !== '');
+            this.institutions = [...new Set(list)];
+          } catch (e) {
+            console.error("Failed to load user institutions:", e);
+          }
+        },
+
+        async loadCountries() {
+          try {
+            this.dbCountries = await api.getCountries();
+          } catch (e) {
+            this.error = "Error fetching countries catalog.";
+          }
+        },
+
+        async loadLanguages() {
+          try {
+            this.dbLanguages = await api.getLanguages();
+          } catch (e) {
+            this.error = "Error fetching languages catalog.";
+          }
+        },
+
+        filteredCountries() {
+          if (!this.searchCountry) return this.dbCountries;
+          return this.dbCountries.filter(c => 
+            c.name.toLowerCase().includes(this.searchCountry.toLowerCase())
+          );
+        },
+
+        filteredLanguages() {
+          if (!this.searchLanguage) return this.dbLanguages;
+          return this.dbLanguages.filter(l => 
+            l.name.toLowerCase().includes(this.searchLanguage.toLowerCase())
+          );
+        },
+
+        async createProject() {
+          this.error = '';
+          if (this.project.country_ids.length === 0) {
+            this.error = "Please select at least one country.";
+            return;
+          }
+          if (this.project.language_ids.length === 0) {
+            this.error = "Please select at least one language.";
+            return;
+          }
+
+          this.saving = true;
+          try {
+            let targetId = this.projectId;
+
+            if (this.projectId) {
+              // Se já possui ID, atualiza o projeto existente (Parte 1 modificada)
+              await api.updateProject(this.projectId, this.project);
+            } else {
+              // Se não possui ID, cria um projeto novo do zero
+              const created = await api.createProject(this.project);
+              targetId = created.id;
+            }
+            
+            // Avança para a segunda tela mantendo o ID correto
+            window.location.href = `project_groups.html?project_id=${targetId}`;
+          } catch (e) {
+            this.error = e.message;
+          } finally {
+            this.saving = false;
+          }
+        },
+        logout() { logout(); }
+      };
+    }
+  </script>
+</body>
+</html>

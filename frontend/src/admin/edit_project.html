@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Project - SysRev</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="../shared/api.js"></script>
+  <style>
+    :root {
+      --ink: #1e293b;
+      --muted: #64748b;
+      --hairline: #e2e8f0;
+      --evidence: #3b82f6;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col font-sans text-slate-800" x-data="editProjectPage()" x-init="init()">
+
+  <header class="bg-white border-b border-[var(--hairline)] py-4 px-6 flex justify-between items-center shadow-sm">
+    <div class="flex items-center gap-3">
+      <span class="text-xl font-bold text-slate-900 tracking-tight">Sys<span class="text-[var(--evidence)]">Rev</span></span>
+      <span class="text-xs px-2 py-1 bg-slate-100 rounded text-[var(--muted)] font-medium">v1.0</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <span class="text-sm text-[var(--muted)]">Welcome, <strong class="text-[var(--ink)]" x-text="user?.name"></strong></span>
+      <button @click="logout" class="text-xs text-red-500 hover:underline">Sign out</button>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-4xl w-full mx-auto p-6 my-8">
+    
+    <!-- Breadcrumb de navegação de volta -->
+    <div class="mb-4">
+      <a href="dashboard_admin.html" class="text-xs text-[var(--evidence)] hover:underline font-medium">← Back to Dashboard</a>
+    </div>
+
+    <!-- Barra de etapas (Ao clicar no Passo 2, valida e salva antes de redirecionar) -->
+    <div class="flex items-center justify-between mb-8 px-4">
+      <div class="flex items-center gap-2">
+        <span class="w-8 h-8 rounded-full bg-[var(--evidence)] text-white flex items-center justify-center font-semibold text-sm">1</span>
+        <span class="text-sm font-semibold text-[var(--ink)]">Project Details</span>
+      </div>
+      <div class="h-0.5 flex-1 bg-slate-200 mx-4"></div>
+      
+      <button @click="saveAndGoToGroups()" :disabled="saving" 
+              class="flex items-center gap-2 transition hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed">
+        <span class="w-8 h-8 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-semibold text-sm" x-show="!saving">2</span>
+        <span class="animate-spin h-5 w-5 border-2 border-[var(--evidence)] border-t-transparent rounded-full" x-show="saving"></span>
+        <span class="text-sm font-medium text-slate-500 underline decoration-dotted">Work Groups & Members</span>
+      </button>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-[var(--hairline)] p-8">
+      <h1 class="text-2xl font-bold text-[var(--ink)] mb-2">Edit Project</h1>
+      <p class="text-sm text-[var(--muted)] mb-6">Update the details for your systematic review project.</p>
+
+      <div x-show="error" x-transition class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg" x-text="error"></div>
+
+      <template x-if="loading">
+        <p class="text-[var(--muted)] text-sm">Loading project data...</p>
+      </template>
+
+      <template x-if="!loading">
+        <!-- Evento submit prevenido para evitar envio acidental por Enter; o salvamento é via botões explícitos -->
+        <form @submit.prevent class="space-y-6">
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Project Title</label>
+              <input type="text" x-model="project.title" required placeholder="e.g. Impact of AI on Global Healthcare"
+                     class="w-full border border-[var(--hairline)] rounded-lg px-4 py-2.5 outline-none focus:border-[var(--evidence)] focus:ring-2 focus:ring-blue-100 transition" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Type</label>
+              <select x-model="project.type" required
+                      class="w-full border border-[var(--hairline)] rounded-lg px-3 py-2.5 outline-none focus:border-[var(--evidence)] focus:ring-2 focus:ring-blue-100 bg-white transition">
+                <option value="scientific">Scientific</option>
+                <option value="technical">Technical</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Description</label>
+            <textarea x-model="project.description" rows="4" placeholder="Brief explanation..."
+                      class="w-full border border-[var(--hairline)] rounded-lg px-4 py-2.5 outline-none focus:border-[var(--evidence)] focus:ring-2 focus:ring-blue-100 transition"></textarea>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Lead Institution</label>
+              <input type="text" x-model="project.lead_institution" list="institutions-list" placeholder="Start typing institution..."
+                     class="w-full border border-[var(--hairline)] rounded-lg px-4 py-2.5 outline-none focus:border-[var(--evidence)] transition" />
+              <datalist id="institutions-list">
+                <template x-for="inst in institutions" :key="inst">
+                  <option :value="inst"></option>
+                </template>
+              </datalist>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Current Status</label>
+              <select x-model="project.status" required
+                      class="w-full border border-[var(--hairline)] rounded-lg px-3 py-2.5 outline-none focus:border-[var(--evidence)] focus:ring-2 focus:ring-blue-100 bg-white transition">
+                <option value="draft">Draft</option>
+                <option value="em_andamento">Em Andamento</option>
+                <option value="concluido">Concluido</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-[var(--hairline)]">
+            
+            <div>
+              <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Target Countries</label>
+              <div class="border border-[var(--hairline)] rounded-lg p-3 bg-white max-h-48 overflow-y-auto space-y-2 shadow-sm">
+                <input type="text" x-model="searchCountry" placeholder="Search country..." 
+                       class="w-full text-xs border border-[var(--hairline)] rounded px-2 py-1.5 mb-2 outline-none focus:border-[var(--evidence)] bg-slate-50" />
+                
+                <template x-for="country in filteredCountries()" :key="country.id">
+                  <label class="flex items-center gap-2.5 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded transition">
+                    <input type="checkbox" :value="country.id" x-model="project.country_ids"
+                           class="rounded text-[var(--evidence)] focus:ring-[var(--evidence)] border-[var(--hairline)]" />
+                    <span class="text-slate-700" x-text="country.name"></span>
+                    <span class="text-xs text-[var(--muted)] ml-auto" x-text="country.code"></span>
+                  </label>
+                </template>
+              </div>
+              <p class="text-xs text-[var(--muted)] mt-1.5">Selected: <span class="font-semibold text-[var(--ink)]" x-text="project.country_ids.length"></span> countries</p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Target Languages</label>
+              <div class="border border-[var(--hairline)] rounded-lg p-3 bg-white max-h-48 overflow-y-auto space-y-2 shadow-sm">
+                <input type="text" x-model="searchLanguage" placeholder="Search language..." 
+                       class="w-full text-xs border border-[var(--hairline)] rounded px-2 py-1.5 mb-2 outline-none focus:border-[var(--evidence)] bg-slate-50" />
+
+                <template x-for="lang in filteredLanguages()" :key="lang.id">
+                  <label class="flex items-center gap-2.5 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded transition">
+                    <input type="checkbox" :value="lang.id" x-model="project.language_ids"
+                           class="rounded text-[var(--evidence)] focus:ring-[var(--evidence)] border-[var(--hairline)]" />
+                    <span class="text-slate-700" x-text="lang.name"></span>
+                    <span class="text-xs text-[var(--muted)] ml-auto" x-text="lang.code.toUpperCase()"></span>
+                  </label>
+                </template>
+              </div>
+              <p class="text-xs text-[var(--muted)] mt-1.5">Selected: <span class="font-semibold text-[var(--ink)]" x-text="project.language_ids.length"></span> languages</p>
+            </div>
+
+          </div>
+
+          <div class="flex justify-between items-center pt-6 border-t border-[var(--hairline)]">
+            <!-- Cancelar agora age simplesmente como voltar, sem salvar nada -->
+            <a href="dashboard_admin.html" class="px-6 py-2.5 text-sm font-medium border border-[var(--hairline)] rounded-lg hover:bg-slate-50 text-[var(--ink)]">
+              Back to Dashboard
+            </a>
+            
+            <div class="flex items-center gap-3">
+              <!-- Botão Único para Salvar Alterações e Ir para os Grupos -->
+              <button type="button" @click="saveAndGoToGroups()" :disabled="saving"
+                      class="bg-[var(--evidence)] text-white hover:bg-blue-600 disabled:opacity-50 px-8 py-2.5 rounded-lg text-sm font-medium shadow transition flex items-center gap-2">
+                <span x-show="!saving">Manage Work Groups</span>
+                <span x-show="saving" class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+              </button>
+            </div>
+          </div>
+
+        </form>
+      </template>
+    </div>
+  </main>
+
+  <script>
+    function editProjectPage() {
+      return {
+        user: getUser(),
+        saving: false,
+        loading: true,
+        error: '',
+        projectId: null,
+        
+        institutions: [],
+        dbCountries: [],
+        dbLanguages: [],
+        
+        searchCountry: '',
+        searchLanguage: '',
+
+        project: {
+          title: '',
+          description: '',
+          type: 'scientific',
+          lead_institution: '',
+          status: 'draft',
+          country_ids: [],
+          language_ids: [],
+          work_group_ids: []
+        },
+
+        async init() {
+          if (!getToken()) { window.location.href = '/index.html'; return; }
+          
+          const params = new URLSearchParams(window.location.search);
+          this.projectId = params.get('project_id');
+
+          if (!this.projectId) {
+            this.error = "Project ID is missing.";
+            this.loading = false;
+            return;
+          }
+
+          await Promise.all([
+            this.loadInstitutions(),
+            this.loadCountries(),
+            this.loadLanguages()
+          ]);
+
+          await this.loadProjectData();
+        },
+
+        async loadProjectData() {
+          try {
+            const data = await api.getProject(this.projectId);
+            
+            this.project = {
+              title: data.titulo || data.title || '',
+              description: data.description || '',
+              type: data.type || 'scientific',
+              lead_institution: data.lead_institution || data.instituicao_lider || '',
+              status: data.status || 'draft',
+              country_ids: (data.countries || data.target_countries || []).map(c => c.id || c),
+              language_ids: (data.languages || data.target_languages || []).map(l => l.id || l),
+              work_group_ids: data.work_group_ids || []
+            };
+          } catch (e) {
+            this.error = "Failed to load project details.";
+          } finally {
+            this.loading = false;
+          }
+        },
+
+        async loadInstitutions() {
+          try {
+            const users = await api.getUsers();
+            const list = users
+              .map(u => u.institution)
+              .filter(inst => inst && inst.trim() !== '');
+            this.institutions = [...new Set(list)];
+          } catch (e) {
+            console.error("Failed to load user institutions:", e);
+          }
+        },
+
+        async loadCountries() {
+          try {
+            this.dbCountries = await api.getCountries();
+          } catch (e) {
+            this.error = "Error fetching countries catalog.";
+          }
+        },
+
+        async loadLanguages() {
+          try {
+            this.dbLanguages = await api.getLanguages();
+          } catch (e) {
+            this.error = "Error fetching languages catalog.";
+          }
+        },
+
+        filteredCountries() {
+          if (!this.searchCountry) return this.dbCountries;
+          return this.dbCountries.filter(c => 
+            c.name.toLowerCase().includes(this.searchCountry.toLowerCase())
+          );
+        },
+
+        filteredLanguages() {
+          if (!this.searchLanguage) return this.dbLanguages;
+          return this.dbLanguages.filter(l => 
+            l.name.toLowerCase().includes(this.searchLanguage.toLowerCase())
+          );
+        },
+
+        // Função que unifica o salvamento automático com o redirecionamento
+        async saveAndGoToGroups() {
+          this.error = '';
+
+          // Validações básicas do formulário
+          if (!this.project.title || this.project.title.trim() === '') {
+            this.error = "Project Title is required.";
+            return;
+          }
+          if (this.project.country_ids.length === 0) {
+            this.error = "Please select at least one country.";
+            return;
+          }
+          if (this.project.language_ids.length === 0) {
+            this.error = "Please select at least one language.";
+            return;
+          }
+
+          this.saving = true;
+          try {
+            const payload = {
+              titulo: this.project.title,
+              title: this.project.title,
+              description: this.project.description,
+              type: this.project.type,
+              instituicao_lider: this.project.lead_institution,
+              lead_institution: this.project.lead_institution,
+              status: this.project.status,
+              country_ids: this.project.country_ids,
+              language_ids: this.project.language_ids
+            };
+
+            // Salva as alterações
+            await api.updateProject(this.projectId, payload);
+            
+            // Redireciona de forma limpa para a tela de Grupos de Trabalho
+            window.location.href = `project_groups.html?project_id=${this.projectId}`;
+          } catch (e) {
+            this.error = `Error saving changes: ${e.message}`;
+          } finally {
+            this.saving = false;
+          }
+        },
+        
+        logout() { logout(); }
+      };
+    }
+  </script>
+</body>
+</html>

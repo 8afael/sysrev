@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --ink: #1B2430;        /* texto principal / cabeçalhos */
+  --paper: #F7F5F0;      /* fundo */
+  --paper-raised: #FFFFFF;
+  --hairline: #DEDAD2;   /* bordas sutis */
+  --muted: #6B7178;      /* texto secundário */
+  --evidence: #2F6F62;   /* verde-escuro: decisões, inclusão, progresso */
+  --evidence-soft: #E4EEEB;
+  --flag: #B5482A;       /* terracota escuro/vermelho-tijolo: exclusão, conflito, alerta */
+  --flag-soft: #F5E4DE;
+  --gold: #B4842A;       /* destaque secundário: pendências, prazos */
+  --gold-soft: #F3EAD8;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Inter', sans-serif;
+}
+
+.font-display {
+  font-family: 'Source Serif 4', serif;
+}
+
+.font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* Rastreador de estágios PRISMA/GT2 — elemento de assinatura visual.
+   A ordem é real (sequência do fluxo), então numerar/ligar os estágios é informação, não decoração. */
+.stage-tracker {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--paper-raised);
+}
+
+.stage-tracker .stage {
+  flex: 1;
+  padding: 14px 16px;
+  border-right: 1px solid var(--hairline);
+  position: relative;
+}
+
+.stage-tracker .stage:last-child {
+  border-right: none;
+}
+
+.stage .stage-count {
+  font-family: 'Source Serif 4', serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.stage .stage-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-top: 6px;
+  display: block;
+}
+
+.card {
+  background: var(--paper-raised);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 500;
+  transition: opacity 0.15s ease;
+}
+.btn-primary:hover { opacity: 0.85; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+.btn-secondary:hover { background: var(--evidence-soft); }
+
+.badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.badge-evidence { background: var(--evidence-soft); color: var(--evidence); }
+.badge-flag { background: var(--flag-soft); color: var(--flag); }
+.badge-gold { background: var(--gold-soft); color: var(--gold); }
+
+:focus-visible {
+  outline: 2px solid var(--evidence);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

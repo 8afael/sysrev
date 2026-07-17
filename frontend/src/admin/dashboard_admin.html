@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard · Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+<link rel="stylesheet" href="../shared/style.css" />
+<script src="../shared/api.js"></script>
+</head>
+<body class="min-h-screen" x-data="adminDashboard()" x-init="load()">
+
+  <div class="flex min-h-screen">
+    <aside class="w-64 border-r border-[var(--hairline)] bg-white px-5 py-6 flex flex-col justify-between">
+      <div>
+        <h1 class="font-display text-xl font-semibold mb-8">Systematic<br/>Review</h1>
+        <nav class="space-y-1 text-sm">
+          <a href="dashboard_admin.html" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--evidence-soft)] text-[var(--evidence)] font-medium">Dashboard</a>
+          <a href="#" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[var(--paper)] text-[var(--ink)]">Projects</a>
+          <a href="#" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[var(--paper)] text-[var(--ink)]">Users</a>
+          <a href="#" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[var(--paper)] text-[var(--ink)]">Disputes</a>
+        </nav>
+      </div>
+      <div class="text-sm">
+        <p class="text-[var(--muted)] text-xs mb-2" x-text="usuario?.email"></p>
+        <button @click="logout()" class="btn-secondary w-full text-center text-sm">Logout</button>
+      </div>
+    </aside>
+
+    <main class="flex-1 px-10 py-8 max-w-6xl">
+      <header class="mb-8 flex items-center justify-between">
+        <div>
+          <h2 class="font-display text-2xl font-semibold">Dashboard</h2>
+          <p class="text-[var(--muted)] text-sm mt-1">Projects you manage</p>
+        </div>
+        <a href="new_project.html" class="btn-primary">+ New Project</a>
+      </header>
+
+      <template x-if="carregando">
+        <p class="text-[var(--muted)] text-sm">Loading panel…</p>
+      </template>
+
+      <template x-if="erro">
+        <div class="card p-4 mb-6 border-[var(--flag)] bg-[var(--flag-soft)] text-[var(--flag)] text-sm" x-text="erro"></div>
+      </template>
+
+      <template x-if="!carregando && !erro">
+        <div>
+          <div class="grid grid-cols-4 gap-4 mb-8">
+            <div class="card p-5">
+              <span class="stage-count font-display text-3xl font-semibold" x-text="metrics.total_projetos"></span>
+              <p class="text-xs text-[var(--muted)] uppercase tracking-wide mt-1">Projects</p>
+            </div>
+            <div class="card p-5">
+              <span class="font-display text-3xl font-semibold text-[var(--evidence)]" x-text="metrics.projetos_em_andamento"></span>
+              <p class="text-xs text-[var(--muted)] uppercase tracking-wide mt-1">Ongoing</p>
+            </div>
+            <div class="card p-5">
+              <span class="font-display text-3xl font-semibold" x-text="metrics.total_documentos"></span>
+              <p class="text-xs text-[var(--muted)] uppercase tracking-wide mt-1">Documents</p>
+            </div>
+            <div class="card p-5">
+              <span class="font-display text-3xl font-semibold" :class="metrics.conflitos_abertos > 0 ? 'text-[var(--flag)]' : ''" x-text="metrics.conflitos_abertos"></span>
+              <p class="text-xs text-[var(--muted)] uppercase tracking-wide mt-1">Opened disputes</p>
+            </div>
+          </div>
+
+          <h3 class="text-sm font-medium text-[var(--muted)] uppercase tracking-wide mb-3">Your projects</h3>
+          <div class="card divide-y divide-[var(--hairline)]">
+            <template x-if="projects.length === 0">
+              <div class="p-6 text-sm text-[var(--muted)] flex items-center justify-between">
+                <span>No projects yet.</span>
+                <a href="new_project.html" class="btn-primary text-sm">Create your first project</a>
+              </div>
+            </template>
+            <template x-for="p in projects" :key="p.id">
+              <div class="p-5 flex items-center justify-between">
+                <div>
+                  <a :href="'project_groups.html?project_id=' + p.id" class="font-medium hover:underline text-[var(--ink)]" x-text="p.titulo"></a>
+                  <p class="text-xs text-[var(--muted)] mt-0.5">
+                    <span x-text="p.type === 'scientific' ? 'PRISMA path' : 'GT2 path'"></span>
+                    · <span x-text="p.instituicao_lider || 'No institution'"></span>
+                  </p>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                  <span class="badge" :class="p.status === 'em_andamento' ? 'badge-evidence' : 'badge-gold'" x-text="p.status"></span>
+                  
+                  <div class="flex items-center gap-2">
+                    <button @click="editProject(p.id)" class="px-2.5 py-1.5 text-xs font-medium rounded-md border border-[var(--hairline)] hover:bg-[var(--paper)] text-[var(--ink)]">
+                      Edit
+                    </button>
+                    <button @click="deleteProject(p.id, p.titulo)" class="px-2.5 py-1.5 text-xs font-medium rounded-md border border-[var(--flag)] bg-white text-[var(--flag)] hover:bg-[var(--flag-soft)]">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+    </main>
+  </div>
+
+<script>
+function adminDashboard() {
+  return {
+    carregando: true,
+    erro: '',
+    usuario: getUser(),
+    metrics: { total_projects: 0, projetos_em_andamento: 0, total_documentos: 0, documentos_por_fase: {}, conflitos_abertos: 0 },
+    projects: [],
+    fasesOrdenadas: ['identificacao', 'triagem', 'elegibilidade', 'incluido', 'excluido'],
+
+    async load() {
+      if (!getToken()) { window.location.href = '../index.html'; return; }
+      this.carregando = true;
+      this.erro = '';
+      try {
+        const [metrics, projects] = await Promise.all([
+          api.dashboardAdmin(),
+          api.listProjects('admin'),
+        ]);
+        this.metrics = metrics;
+        this.projects = projects;
+      } catch (e) {
+        this.erro = e.message;
+      } finally {
+        this.carregando = false;
+      }
+    },
+
+    // 🌟 MÉTODOS DE AÇÃO ADICIONADOS AO ALPINEJS
+    editProject(projectId) {
+      // Redireciona para a tela de edição passando o ID via Query String
+      window.location.href = `edit_project.html?project_id=${projectId}`;
+    },
+
+    async deleteProject(projectId, projectTitle) {
+      const confirmacao = confirm(`Are you sure you want to delete the project "${projectTitle}"? All linked data (including work groups) will be permanently lost.`);
+      if (!confirmacao) return;
+
+      try {
+        this.carregando = true;
+        
+        // Chamará o endpoint mapeado: DELETE /projects/{project_id}
+        await api.deleteProjectMember(projectId);
+        
+        // Remove localmente do array para atualizar a interface instantaneamente
+        this.projects = this.projects.filter(p => p.id !== projectId);
+        
+        // Atualiza as métricas do painel após excluir
+        const updatedMetrics = await api.dashboardAdmin();
+        this.metrics = updatedMetrics;
+      } catch (e) {
+        this.erro = `Error deleting project: ${e.message}`;
+      } finally {
+        this.carregando = false;
+      }
+    },
+
+    logout() { logout(); },
+  };
+}
+</script>
+</body>
+</html>
