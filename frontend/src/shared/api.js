@@ -1,5 +1,6 @@
 // Ajuste este valor caso o backend esteja em outro host/porta.
-const API_BASE = window.API_BASE_URL || 'http://localhost:9500/sysrev';
+//const API_BASE = window.API_BASE_URL || 'http://localhost:9500/sysrev/api';
+const API_BASE = window.API_BASE_URL || 'https://labgira.com/sysrev/api'; 
 
 function getToken() {
   return localStorage.getItem('prisma_token');

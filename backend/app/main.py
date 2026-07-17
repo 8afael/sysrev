@@ -22,9 +22,9 @@ app = FastAPI(
     title="Systematic Review",
     description="Collaborative evidence synthesis workflow",
     version="0.1.0-mvp",
-    docs_url="/sysrev/docs",
-    redoc_url="/sysrev/redoc",
-    openapi_url="/sysrev/openapi.json",
+    docs_url="/sysrev/api/docs",
+    redoc_url="/sysrev/api/redoc",
+    openapi_url="/sysrev/api/openapi.json",
 )
 
 app.add_middleware(
@@ -35,7 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-api = APIRouter(prefix="/sysrev")
+api = APIRouter(prefix="/sysrev/api")
 
 api.include_router(auth_router.router)
 api.include_router(project_router.router)
