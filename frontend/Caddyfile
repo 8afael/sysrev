@@ -1,0 +1,17 @@
+:80 {
+    root * /srv
+    file_server
+    try_files {path} /sysrev/index.html
+
+    encode gzip
+
+    @static {
+        path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2
+    }
+    header @static Cache-Control "public, max-age=2592000, immutable"
+
+    log {
+        output stdout
+        format console
+    }
+}

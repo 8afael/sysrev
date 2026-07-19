@@ -7,8 +7,8 @@
 <title>SysRev</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
-<link rel="stylesheet" href="shared/style.css" />
-<script src="shared/api.js"></script>
+<link rel="stylesheet" href="src/shared/style.css" />
+<script src="src/shared/api.js"></script>
 
 </head>
 <body class="min-h-screen flex items-center justify-center px-6">
@@ -59,7 +59,7 @@ function loginForm() {
       try {
         const data = await api.login(this.email, this.password);
         setSession(data.access_token, { id: data.user_id, name: data.name, email: data.email }); 
-        window.location.href = 'admin/dashboard_admin.html';
+        window.location.href = 'src/admin/dashboard_admin.html';
       } catch (e) {
         this.erro = e.message;
       } finally {
