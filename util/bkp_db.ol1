@@ -6,7 +6,7 @@ from datetime import datetime
 # CONFIGURAÇÕES DO BANCO DE DADOS (Ajuste os valores conforme seu ambiente)
 # ==============================================================================
 CONTAINER_NAME_LOCAL = "sysrev_db"
-CONTAINER_NAME_SERVER = "db"
+CONTAINER_NAME_SERVER = "sysrev_db"
 DB_USER = "sysrev_user"        # Seu usuário do Postgres
 DB_NAME = "sysrev_db" # Substitua pelo nome real do seu banco de dados
 DB_PASSWORD = "sysrev_pass"  # Substitua pela senha real do banco

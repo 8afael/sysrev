@@ -1,0 +1,12 @@
+# Bytecode Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# enviroment
+.env
+.env.*
+!.env.example
+
+# frontend
+/frontend/nginx.conf

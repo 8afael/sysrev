@@ -1,0 +1,15 @@
+server {
+    listen 80;
+    index index.html;
+
+    # Redireciona a raiz para /sysrev/
+    location = / {
+        return 302 /sysrev/;
+    }
+
+    # Usar root em vez de alias evita quebras no try_files
+    location /sysrev/ {
+        root /usr/share/nginx/html; # Certifique-se de que seus arquivos estão dentro de /usr/share/nginx/html/sysrev/
+        try_files $uri $uri/ /sysrev/index.html;
+    }
+}
