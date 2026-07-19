@@ -1,0 +1,154 @@
+server {
+    listen 443 ssl;
+    server_name labgira.com;
+
+    root /var/www/html/labgira;
+    index index.html;
+
+    # Suas configurações de SSL (Certbot)
+    ssl_certificate /etc/letsencrypt/live/labgira.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/labgira.com/privkey.pem;
+
+    location / {
+	try_files $uri $uri/ /index.html;
+    }
+
+    # --- 1. API / SITE (Porta 8500) ---
+    # Como o app já tem root_path="/doutoramento", ele espera receber /doutoramento/...
+    location /doutoramento/ {
+        proxy_pass http://127.0.0.1:8500; # <--- SEM BARRA NO FINAL
+        
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Opcional, mas boa prática com FastAPI
+        proxy_set_header X-Forwarded-Prefix /doutoramento;
+    }
+
+    # --- 2. DASHBOARD (Porta 8501) ---
+    # O Streamlit costuma ser mais chato. Se ele responde em /dashboard:
+    location /doutoramento/dashboard/app/ {
+        proxy_pass http://127.0.0.1:8501; # <--- SEM BARRA NO FINAL
+        
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_read_timeout 86400;
+    }
+
+    location /sysrev/ {
+        proxy_pass http://127.0.0.1:9501;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Prefix /sysrev;
+    }
+
+    location /sysrev/api/ {
+        proxy_pass http://127.0.0.1:9500; 
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Prefix /sysrev/api;
+        proxy_set_header Content-Type $http_content_type;
+        proxy_set_header Content-Length $http_content_length;
+
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        proxy_read_timeout 90;
+    }
+
+    location /estado/ {
+        proxy_pass http://127.0.0.1:9000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Prefix /estado; 
+    }
+
+    location /acoes/ {
+	proxy_pass http://127.0.0.1:8080; # SEM a barra no final
+	proxy_set_header Host $host;
+	proxy_set_header X-Real-IP $remote_addr;
+	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_set_header X-Forwarded-Prefix /acoes; # Informa o FastAPI sobre o subcaminho
+    }
+
+    location = /pdv {
+        return 301 $scheme://$host$request_uri/;
+    }
+    
+    location /pdv/ {
+        proxy_pass http://127.0.0.1:5173;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+	proxy_http_version 1.1;
+	proxy_set_header Upgrade $http_upgrade;
+	proxy_set_header Connection "upgrade";
+        
+	proxy_read_timeout 90;
+        add_header Last-Modified $date_gmt;
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        if_modified_since off;
+        expires off;
+        etag off;
+        proxy_set_header X-Forwarded-Prefix /pdv;
+    }
+
+    location /pdv/api/ {
+        proxy_pass http://127.0.0.1:8000/; # A barra no final remove o "/pdv/api/"
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Prefix /pdv/api;
+
+        add_header Cache-Control 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0';
+        proxy_read_timeout 90;
+    }
+
+    location /alerthub/ {
+        proxy_pass http://127.0.0.1:7500; # <--- SEM BARRA NO FINAL
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Opcional, mas boa pr  tica com FastAPI
+        proxy_set_header X-Forwarded-Prefix /doutoramento;
+    }
+
+    # --- 2. DASHBOARD (Porta 7501) ---
+    # O Streamlit costuma ser mais chato. Se ele responde em /dashboard:
+    location /alerthub/dashboard/app/ {
+        proxy_pass http://127.0.0.1:7501; # <--- SEM BARRA NO FINAL
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400;
+    }
+
+    # --- 3. REDIRECIONAMENTO DE SEGURANÇA ---
+    # Se alguém digitar labgira.com/doutoramento (sem a barra), manda para com barra
+    location = /doutoramento {
+        return 301 $scheme://$host/doutoramento/;
+    }
+}
