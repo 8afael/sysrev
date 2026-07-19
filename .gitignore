@@ -3,7 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# enviroment
+# environment
 .env
 .env.*
 !.env.example
+
+# frontend
+/frontend/nginx.conf
