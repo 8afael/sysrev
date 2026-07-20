@@ -13,5 +13,4 @@ FROM caddy:2-alpine AS dev
 COPY index.html /srv/sysrev/index.html
 COPY src /srv/sysrev/src
 COPY Caddyfile /etc/caddy/Caddyfile
-
 EXPOSE 80

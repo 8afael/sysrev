@@ -1,6 +1,7 @@
+import os
+
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from app.core.database import engine, Base
 from app.core.config import settings
 from app.routers import (
@@ -19,7 +20,7 @@ from app.routers import (
 from app.models import models
 
 app = FastAPI(
-    title="Systematic Review",
+    title="ReviewHub",
     description="Collaborative evidence synthesis workflow",
     version="0.1.0-mvp",
     docs_url="/sysrev/api/docs",
@@ -33,6 +34,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    
 )
 
 api = APIRouter(prefix="/sysrev/api")

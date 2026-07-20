@@ -4,101 +4,185 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Dashboard · Admin</title>
+
+<!-- Framework Visual Padrão -->
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- Alpine.js gerencia de forma limpa o estado do menu hambúrguer e dados -->
 <script src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
 <link rel="stylesheet" href="../shared/style.css" />
 <script src="../shared/api.js"></script>
+
+<style>
+    body {
+        background-color: #ffffff; 
+    }
+    .text-cost {
+        color: #666666;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+</style>
 </head>
-<body class="min-h-screen" x-data="adminDashboard()" x-init="load()">
+<!-- Adicionamos menuAberto: false ao estado do Alpine para gerenciar o Hambúrguer de forma nativa -->
+<body class="min-h-screen bg-white" x-data="{ ...adminDashboard(), menuAberto: false }" x-init="load()">
 
-  <div class="flex min-h-screen">
-    <aside class="w-64 border-r border-[var(--hairline)] bg-white px-5 py-6 flex flex-col justify-between">
-      <div>
-        <h1 class="font-display text-xl font-semibold mb-8">ReviewHub</h1>
-        <nav class="space-y-1 text-sm">
-          <a href="dashboard_admin.html" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--evidence-soft)] text-[var(--evidence)] font-medium">Dashboard</a>
-          <a href="#" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[var(--paper)] text-[var(--ink)]">Projects</a>
-          <a href="#" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[var(--paper)] text-[var(--ink)]">Users</a>
-          <a href="#" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[var(--paper)] text-[var(--ink)]">Disputes</a>
-        </nav>
-      </div>
-      <div class="text-sm">
-        <p class="text-[var(--muted)] text-xs mb-2" x-text="usuario?.email"></p>
-        <button @click="logout()" class="btn-secondary w-full text-center text-sm">Logout</button>
-      </div>
-    </aside>
-
-    <main class="flex-1 px-10 py-8 max-w-6xl">
-      <header class="mb-8 flex items-center justify-between">
-        <div>
-          <h2 class="font-display text-2xl font-semibold">Dashboard</h2>
-          <p class="text-[var(--muted)] text-sm mt-1">Projects you manage</p>
-        </div>
-        <a href="new_project.html" class="btn-primary">+ New Project</a>
-      </header>
-
-      <template x-if="carregando">
-        <p class="text-[var(--muted)] text-sm">Loading panel…</p>
-      </template>
-
-      <template x-if="erro">
-        <div class="card p-4 mb-6 border-[var(--flag)] bg-[var(--flag-soft)] text-[var(--flag)] text-sm" x-text="erro"></div>
-      </template>
-
-      <template x-if="!carregando && !erro">
-        <div>
-          <div class="grid grid-cols-4 gap-4 mb-8">
-            <div class="card p-5">
-              <span class="stage-count font-display text-3xl font-semibold" x-text="metrics.total_projetos"></span>
-              <p class="text-xs text-[var(--muted)] uppercase tracking-wide mt-1">Projects</p>
-            </div>
-            <div class="card p-5">
-              <span class="font-display text-3xl font-semibold" x-text="metrics.total_documentos"></span>
-              <p class="text-xs text-[var(--muted)] uppercase tracking-wide mt-1">Documents</p>
-            </div>
-            <div class="card p-5">
-              <span class="font-display text-3xl font-semibold" :class="metrics.conflitos_abertos > 0 ? 'text-[var(--flag)]' : ''" x-text="metrics.conflitos_abertos"></span>
-              <p class="text-xs text-[var(--muted)] uppercase tracking-wide mt-1">Opened disputes</p>
-            </div>
-          </div>
-
-          <h3 class="text-sm font-medium text-[var(--muted)] uppercase tracking-wide mb-3">Your projects</h3>
-          <div class="card divide-y divide-[var(--hairline)]">
-            <template x-if="projects.length === 0">
-              <div class="p-6 text-sm text-[var(--muted)] flex items-center justify-between">
-                <span>No projects yet.</span>
-                <a href="new_project.html" class="btn-primary text-sm">Create your first project</a>
-              </div>
-            </template>
-            <template x-for="p in projects" :key="p.id">
-              <div class="p-5 flex items-center justify-between">
-                <div>
-                  <a :href="'project_groups.html?project_id=' + p.id" class="font-medium hover:underline text-[var(--ink)]" x-text="p.titulo"></a>
-                  <p class="text-xs text-[var(--muted)] mt-0.5">
-                    <span x-text="p.type === 'scientific' ? 'PRISMA path' : 'GT2 path'"></span>
-                    · <span x-text="p.instituicao_lider || 'No institution'"></span>
-                  </p>
-                </div>
+  <!-- CONTAINER TOTAL VERTICAL -->
+  <div class="min-h-screen flex flex-col justify-between">
+    
+    <!-- ==================== TOPO GLOBAL INTEGRADO EM TAILWIND (Substitui Bootstrap) ==================== -->
+    <nav class="bg-slate-900 text-white shadow-md relative z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <!-- Lado Esquerdo: Logo e Título -->
+            <a href="/sysrev" class="flex items-center gap-3 font-semibold text-lg hover:text-gray-200 transition-colors">
+                <img src="../assets/alerthub_logo.png" alt="AlertHub Logo" class="h-8 w-auto object-contain">
+                <span>Alert Hub</span>
+            </a>
+            
+            <!-- Direita: Info do Usuário + Botão Hambúrguer Nativo -->
+            <div class="flex items-center gap-4">
+                <!-- Nome do usuário perfeitamente alinhado à direita na faixa escura -->
+                <span class="text-gray-300 text-sm font-medium hidden sm:inline border-r border-slate-700 pr-4" x-text="usuario?.name || usuario?.email"></span>
                 
-                <div class="flex items-center gap-4">
-                  <span class="badge" :class="p.status === 'em_andamento' ? 'badge-evidence' : 'badge-gold'" x-text="p.status"></span>
+                <!-- Botão Hambúrguer Inteligente (Sem Bootstrap) -->
+                <button @click="menuAberto = !menuAberto" type="button" class="text-gray-400 hover:text-white focus:outline-none p-1 rounded-md hover:bg-slate-800 transition-colors" aria-label="Toggle navigation">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path x-show="!menuAberto" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        <path x-show="menuAberto" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" style="display: none;" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Menu Retrátil (Aparece suavemente ao clicar no Hambúrguer) -->
+        <div x-show="menuAberto" @click.away="menuAberto = false" class="bg-slate-800 border-t border-slate-700 px-6 py-4 space-y-4 shadow-xl" style="display: none;">
+
+
+            <!-- <hr class="border-slate-700"> -->
+
+            <!-- Links Administrativos (Ex-Barra Lateral) -->
+            <div>
+                <p class="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">ReviewHub Admin Workspace</p>
+                <div class="flex flex-wrap gap-3 items-center text-sm">
+                    <a href="dashboard_admin.html" class="text-white font-medium bg-blue-600 px-3 py-1.5 rounded-md shadow-sm">ReviewHub Dashboard</a>
+                    <a href="#" class="text-gray-300 hover:text-white px-2 py-1">Projects</a>
+                    <a href="#" class="text-gray-300 hover:text-white px-2 py-1">Users</a>
+                    <a href="#" class="text-gray-300 hover:text-white px-2 py-1">Disputes</a>
+                    <button @click="logout()" class="ml-auto text-xs bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white font-medium py-1.5 px-3 rounded-md transition-colors">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 2. CORPO DO DASHBOARD -->
+    <div class="flex-1 max-w-7xl mx-auto w-full px-6 mt-6">
+      
+      <main class="w-full py-2">
+        <header class="mb-8 flex items-center justify-between border-b border-gray-100 pb-4">
+          <div>
+            <h2 class="font-display text-2xl font-semibold text-gray-800">Dashboard</h2>
+            <p class="text-gray-500 text-sm mt-1">Projects you manage</p>
+          </div>
+          <!-- Link explícito e estilizado sem interferência para garantir o funcionamento -->
+          <a href="new_project.html" class="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg text-sm shadow-sm transition-all cursor-pointer z-10">+ New Project</a>
+        </header>
+
+        <template x-if="carregando">
+          <p class="text-gray-500 text-sm">Loading panel…</p>
+        </template>
+
+        <template x-if="erro">
+          <div class="p-4 mb-6 border border-red-200 bg-red-50 text-red-700 rounded-lg text-sm" x-text="erro"></div>
+        </template>
+
+        <!-- Se houver falha de dados no backend, as seções estruturais básicas continuam visíveis e utilizáveis -->
+        <template x-if="!carregando">
+          <div>
+            <!-- Grid de Métricas -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div class="bg-white p-5 border border-gray-200 rounded-lg shadow-sm">
+                <span class="font-display text-3xl font-semibold text-gray-800" x-text="metrics?.total_projetos || 0"></span>
+                <p class="text-xs text-gray-500 uppercase tracking-wide mt-1">Projects</p>
+              </div>
+              <div class="bg-white p-5 border border-gray-200 rounded-lg shadow-sm">
+                <span class="font-display text-3xl font-semibold text-gray-800" x-text="metrics?.total_documentos || 0"></span>
+                <p class="text-xs text-gray-500 uppercase tracking-wide mt-1">Documents</p>
+              </div>
+              <div class="bg-white p-5 border border-gray-200 rounded-lg shadow-sm">
+                <span class="font-display text-3xl font-semibold" :class="(metrics?.conflitos_abertos || 0) > 0 ? 'text-red-600' : 'text-gray-800'" x-text="metrics?.conflitos_abertos || 0"></span>
+                <p class="text-xs text-gray-500 uppercase tracking-wide mt-1">Opened disputes</p>
+              </div>
+            </div>
+
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Your projects</h3>
+            <div class="bg-white border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-100">
+              
+              <template x-if="!projects || projects.length === 0">
+                <div class="p-6 text-sm text-gray-500 flex items-center justify-between">
+                  <span>No projects available or error loading them.</span>
+                  <a href="new_project.html" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1.5 rounded-md text-sm transition-colors">Create a project</a>
+                </div>
+              </template>
+              
+              <template x-for="p in projects" :key="p.id">
+                <div class="p-5 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                  <div>
+                    <a :href="'project_groups.html?project_id=' + p.id" class="font-semibold text-blue-600 hover:text-blue-800 hover:underline text-base" x-text="p.title"></a>
+                    <p class="text-xs text-gray-500 mt-1">
+                      <span class="font-medium text-gray-700" x-text="p.type === 'scientific' ? 'PRISMA path' : 'GT2 path'"></span>
+                      · <span x-text="p.lead_institution || 'No institution'"></span>
+                    </p>
+                  </div>
                   
-                  <div class="flex items-center gap-2">
-                    <button @click="editProject(p.id)" class="px-2.5 py-1.5 text-xs font-medium rounded-md border border-[var(--hairline)] hover:bg-[var(--paper)] text-[var(--ink)]">
-                      Edit
-                    </button>
-                    <button @click="deleteProject(p.id, p.titulo)" class="px-2.5 py-1.5 text-xs font-medium rounded-md border border-[var(--flag)] bg-white text-[var(--flag)] hover:bg-[var(--flag-soft)]">
-                      Delete
-                    </button>
+                  <div class="flex items-center gap-4">
+                    <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full" 
+                          :class="p.status === 'em_andamento' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'" 
+                          x-text="p.status"></span>
+                    
+                    <div class="flex items-center gap-2">
+                      <button @click="editProject(p.id)" class="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors">
+                        Edit
+                      </button>
+                      <button @click="deleteProject(p.id, p.title)" class="px-3 py-1.5 text-xs font-medium rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </template>
 
-              </div>
-            </template>
+            </div>
           </div>
+        </template>
+      </main>
+    </div>
+
+    <!-- 3. RODAPÉ INSTITUCIONAL -->
+    <footer class="w-full border-t border-gray-200 bg-white px-10 py-8 text-cost mt-12">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-8">
+            <div class="w-full md:w-1/4 flex flex-col items-center justify-center text-center">
+                <img src="../assets/eu_flag.jpg" alt="EU Funded" class="max-h-[70px] w-auto mb-3 object-contain">
+                <img src="../assets/cost_logo.png" alt="COST Logo" class="max-h-[50px] w-auto object-contain">
+            </div>
+            <div class="w-full md:w-3/4 space-y-3 text-center md:text-left">
+                <p>
+                    This publication is based on work from <strong>COST Action AlertHub</strong>, 
+                    supported by COST (European Cooperation in Science and Technology).
+                </p>
+                <p>
+                    <strong>COST (European Cooperation in Science and Technology)</strong> is a funding organisation 
+                    for research and innovation networks. Our Actions help connect research initiatives across 
+                    Europe and beyond and enable scientists to grow their ideas by sharing them with their peers.
+                    This boosts their research, career and innovation. 
+                </p>
+                <p>
+                    <a href="https://www.cost.eu/" target="_blank" class="inline-flex items-center gap-1 font-bold no-underline hover:underline" style="color: #b30012;">
+                        <span>🔗</span> https://www.cost.eu/
+                    </a>
+                </p>
+            </div>
         </div>
-      </template>
-    </main>
+    </footer>
+
   </div>
 
 <script>
@@ -106,32 +190,46 @@ function adminDashboard() {
   return {
     carregando: true,
     erro: '',
-    usuario: getUser(),
-    metrics: { total_projects: 0, projetos_em_andamento: 0, total_documentos: 0, documentos_por_fase: {}, conflitos_abertos: 0 },
+    usuario: null, // Inicializado de forma segura
+    metrics: { total_projetos: 0, projetos_em_andamento: 0, total_documentos: 0, documentos_por_fase: {}, conflitos_abertos: 0 },
     projects: [],
     fasesOrdenadas: ['identificacao', 'triagem', 'elegibilidade', 'incluido', 'excluido'],
 
     async load() {
-      if (!getToken()) { window.location.href = '../index.html'; return; }
+  // Verifica o token usando a rota física real antes de modificar qualquer histórico
+  if (typeof getToken === 'function' && !getToken()) { 
+    window.location.href = '../index.html'; 
+    return; 
+  }
+
+  try {
+    if (typeof getUser === 'function') {
+      this.usuario = getUser();
+    }
+  } catch(err) {
+    console.warn("Could not load user data:", err);
+  }
+      
       this.carregando = true;
       this.erro = '';
+      
+      // 2. Proteção Try/Catch reforçada para o carregamento assíncrono de dados
       try {
         const [metrics, projects] = await Promise.all([
           api.dashboardAdmin(),
           api.listProjects('admin'),
         ]);
-        this.metrics = metrics;
-        this.projects = projects;
+        this.metrics = metrics || this.metrics;
+        this.projects = projects || [];
       } catch (e) {
-        this.erro = e.message;
+        console.error("Data fetch intercepted safely:", e);
+        this.erro = "Notice: Connected to server, but dynamic application states could not be fully synchronous.";
       } finally {
         this.carregando = false;
       }
     },
 
-    // 🌟 MÉTODOS DE AÇÃO ADICIONADOS AO ALPINEJS
     editProject(projectId) {
-      // Redireciona para a tela de edição passando o ID via Query String
       window.location.href = `edit_project.html?project_id=${projectId}`;
     },
 
@@ -141,14 +239,8 @@ function adminDashboard() {
 
       try {
         this.carregando = true;
-        
-        // Chamará o endpoint mapeado: DELETE /projects/{project_id}
         await api.deleteProjectMember(projectId);
-        
-        // Remove localmente do array para atualizar a interface instantaneamente
         this.projects = this.projects.filter(p => p.id !== projectId);
-        
-        // Atualiza as métricas do painel após excluir
         const updatedMetrics = await api.dashboardAdmin();
         this.metrics = updatedMetrics;
       } catch (e) {
@@ -158,9 +250,14 @@ function adminDashboard() {
       }
     },
 
-    logout() { logout(); },
+    logout() { 
+      if (typeof logout === 'function') { logout(); } 
+      else { window.location.href = '../index.html'; }
+    },
   };
 }
+
+
 </script>
 </body>
 </html>

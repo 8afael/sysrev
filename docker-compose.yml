@@ -33,6 +33,7 @@ services:
       - "9500:9500"
     volumes:
       - ./backend:/app
+      - ./frontend/static:/app/static
     command: uvicorn app.main:app --host 0.0.0.0 --port 9500 --reload
 
   frontend:
@@ -46,17 +47,10 @@ services:
     ports:
       - "9501:80"
       #- "9501:5173"
-  # frontend:
-  #   build: ./frontend
-  #   container_name: sysrev_frontend
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - backend
-  #   ports:
-  #     - "9501:80"
-  #   volumes:
-  #     - ./frontend:/usr/share/nginx/html/sysrev
-  #     - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf
+    volumes:
+      - ./frontend:/srv/sysrev
+      - ./frontend/Caddyfile:/etc/caddy/Caddyfile
+      #- ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf
 
 volumes:
   pgdata:
