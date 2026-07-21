@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Management - SysRev</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="../shared/api.js"></script>
+  <style>
+    body { background-color: #ffffff; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col font-sans text-slate-800" x-data="projectDocumentsPage()" x-init="init()">
+
+  <!-- 1. TOPO GLOBAL -->
+  <nav class="bg-slate-900 text-white shadow-md relative z-50 w-full">
+      <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <a href="dashboard_admin.html" class="flex items-center gap-3 font-semibold text-lg hover:text-gray-200 transition-colors">
+              <img src="../assets/alerthub_logo.png" alt="AlertHub Logo" class="h-8 w-auto object-contain">
+              <span>Alert Hub</span>
+          </a>
+          <div class="flex items-center gap-4">
+              <span class="text-gray-300 text-sm font-medium hidden sm:inline border-r border-slate-700 pr-4">
+                <strong class="text-white" x-text="projectTitle"></strong>
+              </span>
+              <button @click="menuAberto = !menuAberto" type="button" class="text-gray-400 hover:text-white p-1 rounded-md hover:bg-slate-800">
+                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path x-show="!menuAberto" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                      <path x-show="menuAberto" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" style="display: none;" />
+                  </svg>
+              </button>
+          </div>
+      </div>
+  </nav>
+
+  <!-- 2. CONTEÚDO PRINCIPAL -->
+  <main class="flex-1 max-w-4xl w-full mx-auto p-6 my-8 space-y-8">
+
+    <!-- PROGRESS STEPS -->
+    <div class="flex items-center justify-between px-4">
+      <a :href="'new_project.html?project_id=' + projectId" class="flex items-center gap-2 group cursor-pointer">
+        <span class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 group-hover:bg-slate-300 flex items-center justify-center font-semibold text-sm">1</span>
+        <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Project Details</span>
+      </a>
+      <div class="h-0.5 flex-1 bg-slate-200 mx-3"></div>
+      <a :href="'project_groups.html?project_id=' + projectId" class="flex items-center gap-2 group cursor-pointer">
+        <span class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 group-hover:bg-slate-300 flex items-center justify-center font-semibold text-sm">2</span>
+        <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Work Groups</span>
+      </a>
+      <div class="h-0.5 flex-1 bg-slate-200 mx-3"></div>
+      <div class="flex items-center gap-2">
+        <span class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm">3</span>
+        <span class="text-sm font-semibold text-slate-900">Documents</span>
+      </div>
+    </div>
+
+    <!-- MENSAGEM DE ERRO/ALERTA -->
+    <div x-show="error" id="error-alert" x-transition class="p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center justify-between shadow-sm" style="display: none;">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span x-text="error" class="font-medium"></span>
+      </div>
+      <button @click="error = ''" class="text-red-400 hover:text-red-600 font-bold ml-4 text-lg">&times;</button>
+    </div>
+
+    <!-- SELEÇÃO INICIAL: QUEM FORNECERÁ OS DOCUMENTOS? -->
+    <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+      <h2 class="text-lg font-bold text-slate-900 mb-1">Who will provide the documents for this project?</h2>
+      <p class="text-xs text-slate-500 mb-4">Select whether you (the administrator) will upload the files or if project members will contribute them.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Opção 1: Project Administrator -->
+        <label class="p-4 border rounded-xl cursor-pointer transition flex items-start gap-3"
+               :class="providerType === 'admin' ? 'border-blue-500 bg-blue-50/30 ring-2 ring-blue-500/20' : 'border-gray-200 hover:border-slate-300'">
+          <input type="radio" name="provider" value="admin" x-model="providerType" class="mt-1 text-blue-600 focus:ring-blue-500" />
+          <div>
+            <span class="font-semibold text-slate-900 text-sm block">Option 1: Project Administrator</span>
+            <span class="text-xs text-slate-500">Upload PDF documents directly and assign them to members.</span>
+          </div>
+        </label>
+
+        <!-- Opção 2: Project Members -->
+        <label class="p-4 border rounded-xl cursor-pointer transition flex items-start gap-3"
+               :class="providerType === 'members' ? 'border-blue-500 bg-blue-50/30 ring-2 ring-blue-500/20' : 'border-gray-200 hover:border-slate-300'">
+          <input type="radio" name="provider" value="members" x-model="providerType" class="mt-1 text-blue-600 focus:ring-blue-500" />
+          <div>
+            <span class="font-semibold text-slate-900 text-sm block">Option 2: Project Members</span>
+            <span class="text-xs text-slate-500">Provide instructions for project members to search and upload documents.</span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- BLOCO 1: FLUXO DO ADMINISTRADOR (UPLOAD & ASSIGNMENT) -->
+    <template x-if="providerType === 'admin'">
+      <div class="space-y-8">
+        
+        <!-- SECTION: UPLOAD DOCUMENTS -->
+        <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Upload Project Documents</h3>
+              <p class="text-xs text-slate-500">MVP Limitations: Maximum 10 PDF files (Max 5 MB per file).</p>
+            </div>
+            <span class="text-xs bg-slate-100 text-slate-800 px-2.5 py-1 rounded-full font-medium">
+              Uploaded: <span x-text="documents.length"></span> / 10
+            </span>
+          </div>
+
+          <!-- DROPZONE / UPLOAD INPUT -->
+          <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-slate-50 hover:bg-slate-100/60 transition relative"
+               :class="{ 'opacity-50 pointer-events-none': documents.length >= 10 }">
+            <input type="file" multiple accept="application/pdf" @change="handleFileUpload" 
+                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                   :disabled="documents.length >= 10" />
+            
+            <div class="space-y-2">
+              <svg class="w-10 h-10 text-slate-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <div class="text-sm font-semibold text-slate-700">
+                <span class="text-blue-600 hover:underline">Click to upload</span> or drag and drop PDF files
+              </div>
+              <p class="text-xs text-slate-400">PDF files up to 5 MB</p>
+            </div>
+          </div>
+
+          <!-- LISTA DE DOCUMENTOS ENVIADOS -->
+          <div class="mt-6 border border-gray-200 rounded-lg overflow-hidden" x-show="documents.length > 0">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-gray-200">
+                  <th class="p-3">File Name</th>
+                  <th class="p-3">Size</th>
+                  <th class="p-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 text-sm">
+                <template x-for="(doc, idx) in documents" :key="doc.id || idx">
+                  <tr class="hover:bg-slate-50 transition">
+                    <td class="p-3 font-medium text-slate-800" x-text="doc.name"></td>
+                    <td class="p-3 text-xs text-slate-500" x-text="formatBytes(doc.size)"></td>
+                    <td class="p-3 text-right">
+                      <button @click="removeDocument(idx)" class="text-xs text-red-600 hover:text-red-800 font-medium">Remove</button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SECTION: ASSIGN DOCUMENTS -->
+        <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm" x-show="documents.length > 0">
+          <h3 class="text-base font-bold text-slate-900 mb-1">Assign Documents to Members</h3>
+          <p class="text-xs text-slate-500 mb-4">Choose how you want to distribute the uploaded documents among reviewers.</p>
+
+          <div class="flex items-center gap-4 mb-6">
+            <button @click="assignmentMethod = 'manual'" 
+                    class="px-4 py-2 rounded-lg text-xs font-semibold transition cursor-pointer"
+                    :class="assignmentMethod === 'manual' ? 'bg-blue-600 text-white' : 'border border-gray-300 text-slate-700 hover:bg-slate-50'">
+              Manual Assignment
+            </button>
+            <button @click="autoAssignDocuments()" 
+                    class="px-4 py-2 rounded-lg text-xs font-semibold border border-blue-600 text-blue-600 hover:bg-blue-50 transition cursor-pointer">
+              ⚡ Automatic Random Assignment
+            </button>
+          </div>
+
+          <!-- MANUAL ASSIGNMENT TABLE -->
+          <div x-show="assignmentMethod === 'manual'" class="border border-gray-200 rounded-lg overflow-hidden">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-gray-200">
+                  <th class="p-3">Document Title</th>
+                  <th class="p-3">Assigned Reviewers</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 text-sm">
+                <template x-for="doc in documents" :key="doc.id">
+                  <tr>
+                    <td class="p-3 font-medium text-slate-800" x-text="doc.name"></td>
+                    <td class="p-3">
+                      <select multiple class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-blue-500"
+                              x-model="doc.assignedUserIds">
+                        <template x-for="m in members" :key="m.user_id">
+                          <option :value="m.user_id" x-text="m.name || m.email"></option>
+                        </template>
+                      </select>
+                      <span class="text-[10px] text-slate-400">Hold Ctrl/Cmd to select multiple members</span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </template>
+
+    <!-- BLOCO 2: FLUXO DOS MEMBROS (INSTRUCTIONS) -->
+    <template x-if="providerType === 'members'">
+      <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+        <h3 class="text-base font-bold text-slate-900 mb-1">Instructions for Members</h3>
+        <p class="text-xs text-slate-500 mb-4">Write detailed instructions explaining what type of documents members should search for and upload.</p>
+
+        <textarea x-model="memberInstructions" rows="5" 
+                  placeholder="Example: Please upload scientific articles published between 2020 and 2025 related to climate change communication..."
+                  class="w-full border border-gray-300 rounded-xl p-4 text-sm outline-none focus:border-blue-500 transition"></textarea>
+      </div>
+    </template>
+
+    <!-- BOTTOM ACTIONS (CANCEL, SAVE, NEXT) -->
+    <div class="flex justify-end items-center gap-3 pt-6 border-t border-gray-200">
+      <button @click="goBack" class="border border-gray-300 text-slate-700 hover:bg-slate-100 px-5 py-2.5 rounded-lg text-sm font-semibold transition cursor-pointer">
+        Cancel
+      </button>
+      <button @click="saveOnly" class="border border-blue-600 text-blue-600 hover:bg-blue-50 px-5 py-2.5 rounded-lg text-sm font-semibold transition cursor-pointer">
+        Save
+      </button>
+      <button @click="saveAndProceed" class="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2.5 rounded-lg text-sm font-semibold shadow transition cursor-pointer">
+        Next (Screen 4)
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    function projectDocumentsPage() {
+      // Limite atualizado para 5 MB em bytes
+      const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+
+      return {
+        projectId: '',
+        projectTitle: 'Loading...',
+        providerType: 'admin', // 'admin' ou 'members'
+        assignmentMethod: 'manual',
+        memberInstructions: '',
+        error: '',
+        menuAberto: false,
+        
+        documents: [],
+        members: [],
+
+        async init() {
+          const params = new URLSearchParams(window.location.search);
+          this.projectId = params.get('project_id');
+
+          if (!this.projectId) {
+            alert('No project ID found. Redirecting...');
+            window.location.href = 'dashboard_admin.html';
+            return;
+          }
+
+          if (typeof api !== 'undefined') {
+            try {
+              const project = await api.getProject(this.projectId);
+              this.projectTitle = project.title || project.titulo || 'Untitled Project';
+              this.members = await api.listProjectMembers(this.projectId).catch(() => []);
+            } catch(e) {
+              this.error = "Error loading project configuration.";
+            }
+          }
+        },
+
+        handleFileUpload(e) {
+          const files = Array.from(e.target.files);
+          this.error = '';
+
+          if (this.documents.length + files.length > 10) {
+            this.error = "Limit exceeded: You can upload a maximum of 10 PDF documents per project.";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+          }
+
+          for (let file of files) {
+            if (file.type !== 'application/pdf') {
+              this.error = `Invalid format: "${file.name}" is not a PDF file. Only PDF format is supported.`;
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              return;
+            }
+
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+              this.error = `File too large: "${file.name}" exceeds the maximum limit of 5 MB.`;
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              return;
+            }
+
+            this.documents.push({
+              id: 'temp_' + Date.now() + Math.random(),
+              name: file.name,
+              size: file.size,
+              rawFile: file,
+              assignedUserIds: []
+            });
+          }
+        },
+
+        removeDocument(index) {
+          this.documents.splice(index, 1);
+        },
+
+        autoAssignDocuments() {
+          if (this.members.length === 0) {
+            this.error = "No reviewers available in project members. Please add members in Step 2 first.";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+          }
+
+          this.assignmentMethod = 'auto';
+          this.documents.forEach((doc, idx) => {
+            const memberIndex = idx % this.members.length;
+            doc.assignedUserIds = [this.members[memberIndex].user_id];
+          });
+        },
+
+        validate() {
+          if (this.providerType === 'admin') {
+            if (this.documents.length === 0) {
+              this.error = "Please upload at least one PDF document or choose Option 2 (Project Members).";
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              return false;
+            }
+          } else if (this.providerType === 'members') {
+            if (!this.memberInstructions.trim()) {
+              this.error = "Please provide instructions for members on what type of documents to upload.";
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              return false;
+            }
+          }
+          this.error = '';
+          return true;
+        },
+
+        async saveOnly() {
+          if (!this.validate()) return;
+          try {
+            alert("Document configuration saved successfully!");
+          } catch(e) {
+            this.error = "Failed to save document settings: " + e.message;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        },
+
+        async saveAndProceed() {
+          if (!this.validate()) return;
+          try {
+            window.location.href = `screen_4.html?project_id=${this.projectId}`;
+          } catch(e) {
+            this.error = "Failed to proceed: " + e.message;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        },
+
+        goBack() {
+          window.location.href = `project_groups.html?project_id=${this.projectId}`;
+        },
+
+        formatBytes(bytes) {
+          if (bytes === 0) return '0 Bytes';
+          const k = 1024;
+          const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+          return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+      };
+    }
+  </script>
+</body>
+</html>

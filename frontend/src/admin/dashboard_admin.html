@@ -100,7 +100,7 @@
             <!-- Grid de Métricas -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               <div class="bg-white p-5 border border-gray-200 rounded-lg shadow-sm">
-                <span class="font-display text-3xl font-semibold text-gray-800" x-text="metrics?.total_projetos || 0"></span>
+                <span class="font-display text-3xl font-semibold text-gray-800" x-text="projects ? projects.length : 0"></span>
                 <p class="text-xs text-gray-500 uppercase tracking-wide mt-1">Projects</p>
               </div>
               <div class="bg-white p-5 border border-gray-200 rounded-lg shadow-sm">
@@ -131,12 +131,7 @@
                       · <span x-text="p.lead_institution || 'No institution'"></span>
                     </p>
                   </div>
-                  
-                  <div class="flex items-center gap-4">
-                    <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full" 
-                          :class="p.status === 'em_andamento' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'" 
-                          x-text="p.status"></span>
-                    
+                               
                     <div class="flex items-center gap-2">
                       <button @click.stop="editProject(p.id)" class="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors">
                         Edit
@@ -233,15 +228,14 @@ function adminDashboard() {
     },
 
     async deleteProject(projectId, projectTitle) {
-      const confirmacao = confirm(`Are you sure you want to delete the project "${projectTitle}"? All linked data (including work groups) will be permanently lost.`);
+      const confirmacao = confirm(`Are you sure you want to delete the project "${projectTitle}"? All linked data will be permanently lost.`);
       if (!confirmacao) return;
 
       try {
         this.carregando = true;
         await api.deleteProject(projectId);
+        // Apenas remove da lista local; a contagem (projects.length) atualizará automaticamente!
         this.projects = this.projects.filter(p => p.id !== projectId);
-        const updatedMetrics = await api.dashboardAdmin();
-        this.metrics = updatedMetrics;
       } catch (e) {
         this.erro = `Error deleting project: ${e.message}`;
       } finally {

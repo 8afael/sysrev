@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual do Utilizador e Moderador - Zoom</title>
+    <style>
+        :root {
+            --primary: #2D8CFF;
+            --primary-dark: #0E71EB;
+            --dark-bg: #1A1E29;
+            --light-bg: #F8F9FA;
+            --text: #333333;
+            --border: #E0E0E0;
+            --accent: #28A745;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding-bottom: 40px;
+        }
+
+        header {
+            background-color: var(--dark-bg);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 4px solid var(--primary);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: #A0AEC0;
+            font-size: 1.1rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        h2 {
+            color: var(--primary-dark);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--light-bg);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.8rem;
+        }
+
+        li::before {
+            content: "•";
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1.5rem;
+            position: absolute;
+            left: 0;
+            top: -5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: #F1F5F9;
+            color: var(--dark-bg);
+        }
+
+        tr:hover {
+            background-color: #F8FAFC;
+        }
+
+        .badge {
+            background-color: var(--primary);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .video-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .video-card {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+            background-color: #FAFAFA;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .video-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .video-card h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark-bg);
+        }
+
+        .btn-link {
+            display: inline-block;
+            margin-top: 0.5rem;
+            padding: 8px 16px;
+            background-color: #FF0000;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .btn-link:hover {
+            background-color: #CC0000;
+        }
+
+        .note {
+            background-color: #FFFBEB;
+            border-left: 4px solid #F59E0B;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+            font-size: 0.95rem;
+        }
+
+        footer {
+            text-align: center;
+            color: #718096;
+            font-size: 0.9rem;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Guia Rápido de Utilização do Zoom</h1>
+        <p>Instruções Técnicas e Normas de Moderação para Conferências e Sessões</p>
+    </header>
+
+    <div class="container">
+
+        <!-- Sessão: Regras de Moderação -->
+        <section class="card">
+            <h2>Indicações Úteis para os Moderadores</h2>
+            <ul>
+                <li><strong>Chamada de Autores:</strong> Cada moderador deverá chamar cada autor individualmente para iniciar a respetiva apresentação.</li>
+                <li><strong>Partilha de Ecrã:</strong> Cada conferencista ou comunicante é responsável por disponibilizar e retirar a sua tela/slides no início e término da apresentação.</li>
+                <li><strong>Partilha de Posters:</strong> Nas sessões dedicadas, os moderadores serão responsáveis por disponibilizar a visualização de cada poster para apresentação e perguntas.</li>
+                <li><strong>Gestão do Tempo:</strong> Recomenda-se o cumprimento rigoroso do tempo estipulado. Os debates finais não podem ultrapassar o limite da sessão.</li>
+            </ul>
+        </section>
+
+        <!-- Sessão: Tempos de Apresentação -->
+        <section class="card">
+            <h2>Duração das Apresentações</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo de Sessão</th>
+                        <th>Duração</th>
+                        <th>Observações / Debate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Conferências Plenárias</strong></td>
+                        <td><span class="badge">35 min</span></td>
+                        <td>Pode haver tempo para perguntas no final.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Comunicações Orais</strong></td>
+                        <td><span class="badge">12 min</span></td>
+                        <td>Debate no final da sessão.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Comunicações Livres</strong></td>
+                        <td><span class="badge">8 min</span></td>
+                        <td>Debate no final da sessão.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Poster com Apresentação</strong></td>
+                        <td><span class="badge">3 min</span></td>
+                        <td>Debate após cada apresentação. Visita prévia aos posters online recomendada.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Poster sem Apresentação</strong></td>
+                        <td><span class="badge">0 min</span></td>
+                        <td>Poderão ser colocadas questões pontuais pelos presentes. Visita prévia online recomendada.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Sessão: Tutoriais e Ajustes Técnicos no Zoom -->
+        <section class="card">
+            <h2>Ajustes Técnicos no Zoom (Vídeos no YouTube)</h2>
+            <p>Abaixo encontra-se uma seleção de vídeos instrucionais em Português para configuração adequada do microfone, câmara e partilha de ecrã:</p>
+            
+            <div class="video-links">
+                <div class="video-card">
+                    <h3>Ajustes de Áudio e Microfone</h3>
+                    <p>Como testar e configurar o microfone e altifalantes antes de iniciar a sessão.</p>
+                    <a href="https://youtu.be/9lqCro7ht9U?t=62" target="_blank" class="btn-link">Ver Tutorial de Áudio</a>
+                </div>
+
+                <div class="video-card">
+                    <h3>Ajustes de Vídeo e Câmara</h3>
+                    <p>Como selecionar a câmara correta, ajustar enquadramento e aplicar iluminação adequada.</p>
+                    <a href="https://youtu.be/cNTEPs1JbNU?t=25" target="_blank" class="btn-link">Ver Tutorial de Vídeo</a>
+                </div>
+
+                <div class="video-card">
+                    <h3>Como Partilhar a Tela / Slides</h3>
+                    <p>Passo a passo para apresentar o PowerPoint, PDF ou área de trabalho sem complicações.</p>
+                    <a href="https://youtu.be/walZie2oWRE?t=34" target="_blank" class="btn-link">Ver Tutorial de Partilha</a>
+                </div>
+            </div>
+
+            <div class="note">
+                <strong>Recomendação aos Participantes:</strong> Aceda à sala com 10 minutos de antecedência para validar o funcionamento do seu áudio e vídeo com a equipa técnica/moderadores.
+            </div>
+        </section>
+
+    </div>
+
+    <footer>
+        <p>Manual de Utilização do Zoom — Organização do Evento</p>
+    </footer>
+
+</body>
+</html>

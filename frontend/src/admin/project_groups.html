@@ -116,7 +116,7 @@
     <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
       <div class="mb-4">
         <h2 class="text-lg font-bold text-slate-900">Add Reviewers to Work Groups</h2>
-        <p class="text-xs text-slate-500">Search registered users and assign them to one of the active work groups selected above.</p>
+        <p class="text-xs text-slate-500">Search registered users and assign them to the selected project.</p>
       </div>
 
       <div class="flex gap-3 mb-4">
@@ -172,7 +172,7 @@
       <div class="flex justify-between items-center mb-4">
         <div>
           <h2 class="text-lg font-bold text-slate-900">Active Project Members</h2>
-          <p class="text-xs text-slate-500">List of collaborators currently assigned to work groups in this project.</p>
+          <p class="text-xs text-slate-500">Collaborators currently assigned to this project.</p>
         </div>
         <span class="text-xs bg-slate-100 text-slate-800 px-2.5 py-1 rounded-full font-medium">
           Total Members: <span x-text="members.length"></span>
@@ -222,11 +222,8 @@
         <button @click="goBack" class="border border-gray-300 text-slate-700 hover:bg-slate-100 px-5 py-2.5 rounded-lg text-sm font-semibold transition cursor-pointer">
           Cancel
         </button>
-        <button @click="saveOnly" class="border border-blue-600 text-blue-600 hover:bg-blue-50 px-5 py-2.5 rounded-lg text-sm font-semibold transition cursor-pointer">
-          Save
-        </button>
         <button @click="finishSetup" class="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2.5 rounded-lg text-sm font-semibold shadow transition inline-block cursor-pointer">
-          Finish Project Setup
+          Save Project Setup
         </button>
       </div>
 
@@ -461,13 +458,13 @@
 
         // CANCEL: Retorna ao passo anterior sem apagar o projeto
         goBack() {
-          window.location.href = 'new_project.html?project_id=' + this.projectId;
+          window.location.href = 'dashboard_admin.html';
         },
 
         // SAVE: Apenas grava as informações selecionadas e mantém na tela
         async saveOnly() {
           if (!this.validateSetup()) return;
-          
+
           try {
             await this.saveGroups();
             alert("Project work groups saved successfully!");

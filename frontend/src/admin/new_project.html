@@ -88,7 +88,7 @@
     <!-- Cartão Interno do Formulário -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
       <h1 class="text-2xl font-bold text-slate-900 mb-2">Create New Project</h1>
-      <p class="text-sm text-slate-500 mb-6">Enter the primary details for your systematic review project.</p>
+      <p class="text-sm text-slate-500 mb-6">Enter the primary details for your project.</p>
 
       <div x-show="error" x-transition class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg" x-text="error" style="display: none;"></div>
 
@@ -116,8 +116,7 @@
                     class="w-full border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-sm"></textarea>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+        <div class="w-full grid grid-cols-1 md:grid-cols-1">
             <label class="block text-sm font-medium mb-1.5 text-slate-700">Lead Institution</label>
             <input type="text" x-model="project.lead_institution" list="institutions-list" placeholder="Start typing institution..."
                    class="w-full border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:border-blue-500 transition text-sm" />
@@ -126,14 +125,6 @@
                 <option :value="inst"></option>
               </template>
             </datalist>
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1.5 text-slate-700">Initial Status</label>
-            <select x-model="project.status" disabled
-                    class="w-full border border-gray-300 bg-slate-50 rounded-lg px-3 py-2.5 outline-none text-slate-500 font-medium text-sm">
-              <option value="draft">Draft (Assigned on creation)</option>
-            </select>
-          </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-200">

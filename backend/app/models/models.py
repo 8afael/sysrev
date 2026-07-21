@@ -101,6 +101,9 @@ class Project(Base):
     created_by = Column(UUID(as_uuid=False), ForeignKey("users.id"))
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    document_provider = Column(String(20), default="admin")
+    member_instructions = Column(Text, nullable=True)
+
     members = relationship("ProjectUser", back_populates="project", cascade="all, delete-orphan")
     documents = relationship("Document", back_populates="project", cascade="all, delete-orphan")
     form_schemas = relationship("FormSchema", back_populates="project", cascade="all, delete-orphan")
@@ -188,6 +191,10 @@ class Document(Base):
     phase = Column(SAEnum(DocumentPhase), default=DocumentPhase.identification)
     extra_metadata = Column(JSON, default=dict)  # renamed from metadata_json (reserved name)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    source_type = Column(String(100))
+    drive_file_id = Column(String(255), nullable=True, index=True)
+    file_size = Column(Integer, nullable=True)
 
     project = relationship("Project", back_populates="documents")
     assignments = relationship("Assignment", back_populates="document", cascade="all, delete-orphan")
