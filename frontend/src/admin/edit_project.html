@@ -3,79 +3,110 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit Project - SysRev</title>
+  <title>ReviewHub - Edit Project</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script src="../shared/api.js"></script>
   <style>
-    :root {
-      --ink: #1e293b;
-      --muted: #64748b;
-      --hairline: #e2e8f0;
-      --evidence: #3b82f6;
+    body {
+        background-color: #ffffff; 
+    }
+    .text-cost {
+        color: #666666;
+        font-size: 0.9rem;
+        line-height: 1.5;
     }
   </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex flex-col font-sans text-slate-800" x-data="editProjectPage()" x-init="init()">
 
-  <header class="bg-white border-b border-[var(--hairline)] py-4 px-6 flex justify-between items-center shadow-sm">
-    <div class="flex items-center gap-3">
-      <span class="text-xl font-bold text-slate-900 tracking-tight">Sys<span class="text-[var(--evidence)]">Rev</span></span>
-      <span class="text-xs px-2 py-1 bg-slate-100 rounded text-[var(--muted)] font-medium">v1.0</span>
-    </div>
-    <div class="flex items-center gap-4">
-      <span class="text-sm text-[var(--muted)]">Welcome, <strong class="text-[var(--ink)]" x-text="user?.name"></strong></span>
-      <button @click="logout" class="text-xs text-red-500 hover:underline">Sign out</button>
-    </div>
-  </header>
+<body class="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800" x-data="editProjectPage()" x-init="init()">
 
+  <!-- 1. TOPO GLOBAL INTEGRADO (ALERT HUB + MENU) -->
+  <nav class="bg-slate-900 text-white shadow-md relative z-50 w-full">
+      <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <!-- Lado Esquerdo: Logo e Título -->
+          <a href="dashboard_admin.html" class="flex items-center gap-3 font-semibold text-lg hover:text-gray-200 transition-colors">
+              <img src="../assets/alerthub_logo.png" alt="AlertHub Logo" class="h-8 w-auto object-contain">
+              <span>Alert Hub</span>
+          </a>
+          
+          <!-- Direita: Info do Usuário + Botão Hambúrguer Nativo -->
+          <div class="flex items-center gap-4">
+              <span class="text-gray-300 text-sm font-medium hidden sm:inline border-r border-slate-700 pr-4">
+                Welcome, <strong class="text-white" x-text="user?.name || user?.email || 'Admin'"></strong>
+              </span>
+              
+              <button @click="menuAberto = !menuAberto" type="button" class="text-gray-400 hover:text-white focus:outline-none p-1 rounded-md hover:bg-slate-800 transition-colors" aria-label="Toggle navigation">
+                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path x-show="!menuAberto" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                      <path x-show="menuAberto" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" style="display: none;" />
+                  </svg>
+              </button>
+          </div>
+      </div>
+
+      <!-- Menu Retrátil -->
+      <div x-show="menuAberto" @click.away="menuAberto = false" class="bg-slate-800 border-t border-slate-700 px-6 py-4 space-y-4 shadow-xl" style="display: none;">
+          <div>
+              <p class="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">ReviewHub Admin Workspace</p>
+              <div class="flex flex-wrap gap-3 items-center text-sm">
+                  <a href="dashboard_admin.html" class="text-white font-medium bg-blue-600 px-3 py-1.5 rounded-md shadow-sm">ReviewHub Dashboard</a>
+                  <a href="#" class="text-gray-300 hover:text-white px-2 py-1">Projects</a>
+                  <a href="#" class="text-gray-300 hover:text-white px-2 py-1">Users</a>
+                  <a href="#" class="text-gray-300 hover:text-white px-2 py-1">Disputes</a>
+                  <button @click="logout()" class="ml-auto text-xs bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white font-medium py-1.5 px-3 rounded-md transition-colors">Logout</button>
+              </div>
+          </div>
+      </div>
+  </nav>
+
+  <!-- 2. CONTEÚDO PRINCIPAL (FORMULÁRIO DE CRIAÇÃO) -->
   <main class="flex-1 max-w-4xl w-full mx-auto p-6 my-8">
     
     <!-- Breadcrumb de navegação de volta -->
     <div class="mb-4">
-      <a href="dashboard_admin.html" class="text-xs text-[var(--evidence)] hover:underline font-medium">← Back to Dashboard</a>
+      <a href="dashboard_admin.html" class="text-xs text-blue-600 hover:underline font-medium">← Back to Dashboard</a>
     </div>
 
-    <!-- Barra de etapas (Ao clicar no Passo 2, valida e salva antes de redirecionar) -->
+    <!-- Barra de etapas -->
     <div class="flex items-center justify-between mb-8 px-4">
       <div class="flex items-center gap-2">
-        <span class="w-8 h-8 rounded-full bg-[var(--evidence)] text-white flex items-center justify-center font-semibold text-sm">1</span>
-        <span class="text-sm font-semibold text-[var(--ink)]">Project Details</span>
+        <span class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm">1</span>
+        <span class="text-sm font-semibold text-slate-900">Project Details</span>
       </div>
       <div class="h-0.5 flex-1 bg-slate-200 mx-4"></div>
       
       <button @click="saveAndGoToGroups()" :disabled="saving" 
               class="flex items-center gap-2 transition hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed">
         <span class="w-8 h-8 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-semibold text-sm" x-show="!saving">2</span>
-        <span class="animate-spin h-5 w-5 border-2 border-[var(--evidence)] border-t-transparent rounded-full" x-show="saving"></span>
+        <span class="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full" x-show="saving"></span>
         <span class="text-sm font-medium text-slate-500 underline decoration-dotted">Work Groups & Members</span>
       </button>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-[var(--hairline)] p-8">
-      <h1 class="text-2xl font-bold text-[var(--ink)] mb-2">Edit Project</h1>
-      <p class="text-sm text-[var(--muted)] mb-6">Update the details for your systematic review project.</p>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+      <h1 class="text-2xl font-bold text-slate-900 mb-2">Edit Project</h1>
+      <p class="text-sm text-slate-500 mb-6">Update the details for your systematic review project.</p>
 
-      <div x-show="error" x-transition class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg" x-text="error"></div>
+      <div x-show="error" x-transition class="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg" x-text="error" style="display: none;"></div>
 
       <template x-if="loading">
-        <p class="text-[var(--muted)] text-sm">Loading project data...</p>
+        <p class="text-slate-500 text-sm">Loading project data...</p>
       </template>
 
       <template x-if="!loading">
-        <!-- Evento submit prevenido para evitar envio acidental por Enter; o salvamento é via botões explícitos -->
         <form @submit.prevent class="space-y-6">
           
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="md:col-span-2">
-              <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Project Title</label>
+              <label class="block text-sm font-medium mb-1.5 text-slate-900">Project Title</label>
               <input type="text" x-model="project.title" required placeholder="e.g. Impact of AI on Global Healthcare"
-                     class="w-full border border-[var(--hairline)] rounded-lg px-4 py-2.5 outline-none focus:border-[var(--evidence)] focus:ring-2 focus:ring-blue-100 transition" />
+                     class="w-full border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Type</label>
+              <label class="block text-sm font-medium mb-1.5 text-slate-900">Type</label>
               <select x-model="project.type" required
-                      class="w-full border border-[var(--hairline)] rounded-lg px-3 py-2.5 outline-none focus:border-[var(--evidence)] focus:ring-2 focus:ring-blue-100 bg-white transition">
+                      class="w-full border border-gray-300 rounded-lg px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white transition">
                 <option value="scientific">Scientific</option>
                 <option value="technical">Technical</option>
               </select>
@@ -83,16 +114,16 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Description</label>
+            <label class="block text-sm font-medium mb-1.5 text-slate-900">Description</label>
             <textarea x-model="project.description" rows="4" placeholder="Brief explanation..."
-                      class="w-full border border-[var(--hairline)] rounded-lg px-4 py-2.5 outline-none focus:border-[var(--evidence)] focus:ring-2 focus:ring-blue-100 transition"></textarea>
+                      class="w-full border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"></textarea>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Lead Institution</label>
+              <label class="block text-sm font-medium mb-1.5 text-slate-900">Lead Institution</label>
               <input type="text" x-model="project.lead_institution" list="institutions-list" placeholder="Start typing institution..."
-                     class="w-full border border-[var(--hairline)] rounded-lg px-4 py-2.5 outline-none focus:border-[var(--evidence)] transition" />
+                     class="w-full border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:border-blue-500 transition" />
               <datalist id="institutions-list">
                 <template x-for="inst in institutions" :key="inst">
                   <option :value="inst"></option>
@@ -100,9 +131,9 @@
               </datalist>
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Current Status</label>
+              <label class="block text-sm font-medium mb-1.5 text-slate-900">Current Status</label>
               <select x-model="project.status" required
-                      class="w-full border border-[var(--hairline)] rounded-lg px-3 py-2.5 outline-none focus:border-[var(--evidence)] focus:ring-2 focus:ring-blue-100 bg-white transition">
+                      class="w-full border border-gray-300 rounded-lg px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white transition">
                 <option value="draft">Draft</option>
                 <option value="em_andamento">Em Andamento</option>
                 <option value="concluido">Concluido</option>
@@ -110,60 +141,85 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-[var(--hairline)]">
-            
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-200">
+            <!-- Países -->
             <div>
-              <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Target Countries</label>
-              <div class="border border-[var(--hairline)] rounded-lg p-3 bg-white max-h-48 overflow-y-auto space-y-2 shadow-sm">
+              <label class="block text-sm font-medium mb-1.5 text-slate-700">Target Countries</label>
+              <div class="border border-gray-200 rounded-lg p-3 bg-white max-h-48 overflow-y-auto space-y-2 shadow-sm mb-2">
                 <input type="text" x-model="searchCountry" placeholder="Search country..." 
-                       class="w-full text-xs border border-[var(--hairline)] rounded px-2 py-1.5 mb-2 outline-none focus:border-[var(--evidence)] bg-slate-50" />
+                       class="w-full text-xs border border-gray-300 rounded px-2 py-1.5 mb-2 outline-none focus:border-blue-500 bg-slate-50" />
                 
                 <template x-for="country in filteredCountries()" :key="country.id">
                   <label class="flex items-center gap-2.5 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded transition">
                     <input type="checkbox" :value="country.id" x-model="project.country_ids"
-                           class="rounded text-[var(--evidence)] focus:ring-[var(--evidence)] border-[var(--hairline)]" />
-                    <span class="text-slate-700" x-text="country.name"></span>
-                    <span class="text-xs text-[var(--muted)] ml-auto" x-text="country.code"></span>
+                           class="rounded text-blue-600 focus:ring-blue-500 border-gray-300" />
+                    <span class="text-slate-700 text-xs md:text-sm" x-text="country.name"></span>
+                    <span class="text-xs text-slate-400 ml-auto" x-text="country.code"></span>
                   </label>
                 </template>
               </div>
-              <p class="text-xs text-[var(--muted)] mt-1.5">Selected: <span class="font-semibold text-[var(--ink)]" x-text="project.country_ids.length"></span> countries</p>
+
+              <!-- Células Dinâmicas de Países Selecionados -->
+              <div class="flex flex-wrap gap-1.5 min-h-[24px]">
+                <template x-for="c in getSelectedCountries()" :key="c.id">
+                  <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-medium px-2 py-0.5 rounded border border-blue-100">
+                    <span x-text="c.name"></span>
+                    <button type="button" @click="project.country_ids = project.country_ids.filter(id => id != c.id)" class="text-blue-400 hover:text-blue-600 font-bold ml-1 focus:outline-none">×</button>
+                  </span>
+                </template>
+                <template x-if="project.country_ids.length === 0">
+                  <p class="text-xs text-slate-400 italic">No countries selected</p>
+                </template>
+              </div>
             </div>
 
+            <!-- Idiomas -->
             <div>
-              <label class="block text-sm font-medium mb-1.5 text-[var(--ink)]">Target Languages</label>
-              <div class="border border-[var(--hairline)] rounded-lg p-3 bg-white max-h-48 overflow-y-auto space-y-2 shadow-sm">
+              <label class="block text-sm font-medium mb-1.5 text-slate-700">Target Languages</label>
+              <div class="border border-gray-200 rounded-lg p-3 bg-white max-h-48 overflow-y-auto space-y-2 shadow-sm mb-2">
                 <input type="text" x-model="searchLanguage" placeholder="Search language..." 
-                       class="w-full text-xs border border-[var(--hairline)] rounded px-2 py-1.5 mb-2 outline-none focus:border-[var(--evidence)] bg-slate-50" />
+                       class="w-full text-xs border border-gray-300 rounded px-2 py-1.5 mb-2 outline-none focus:border-blue-500 bg-slate-50" />
 
                 <template x-for="lang in filteredLanguages()" :key="lang.id">
                   <label class="flex items-center gap-2.5 text-sm cursor-pointer hover:bg-slate-50 p-1 rounded transition">
                     <input type="checkbox" :value="lang.id" x-model="project.language_ids"
-                           class="rounded text-[var(--evidence)] focus:ring-[var(--evidence)] border-[var(--hairline)]" />
-                    <span class="text-slate-700" x-text="lang.name"></span>
-                    <span class="text-xs text-[var(--muted)] ml-auto" x-text="lang.code.toUpperCase()"></span>
+                           class="rounded text-blue-600 focus:ring-blue-500 border-gray-300" />
+                    <span class="text-slate-700 text-xs md:text-sm" x-text="lang.name"></span>
+                    <span class="text-xs text-slate-400 ml-auto" x-text="lang.code.toUpperCase()"></span>
                   </label>
                 </template>
               </div>
-              <p class="text-xs text-[var(--muted)] mt-1.5">Selected: <span class="font-semibold text-[var(--ink)]" x-text="project.language_ids.length"></span> languages</p>
-            </div>
 
+              <!-- Células Dinâmicas de Idiomas Selecionados -->
+              <div class="flex flex-wrap gap-1.5 min-h-[24px]">
+                <template x-for="l in getSelectedLanguages()" :key="l.id">
+                  <span class="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-xs font-medium px-2 py-0.5 rounded border border-purple-100">
+                    <span x-text="l.name"></span>
+                    <button type="button" @click="project.language_ids = project.language_ids.filter(id => id != l.id)" class="text-purple-400 hover:text-purple-600 font-bold ml-1 focus:outline-none">×</button>
+                  </span>
+                </template>
+                <template x-if="project.language_ids.length === 0">
+                  <p class="text-xs text-slate-400 italic">No languages selected</p>
+                </template>
+              </div>
+            </div>
           </div>
 
-          <div class="flex justify-between items-center pt-6 border-t border-[var(--hairline)]">
-            <!-- Cancelar agora age simplesmente como voltar, sem salvar nada -->
-            <a href="dashboard_admin.html" class="px-6 py-2.5 text-sm font-medium border border-[var(--hairline)] rounded-lg hover:bg-slate-50 text-[var(--ink)]">
-              Back to Dashboard
+          <div class="flex justify-end gap-3 pt-6 border-t border-gray-200">
+            <!-- Botão de Cancelar -->
+            <a href="dashboard_admin.html" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Cancel
             </a>
-            
-            <div class="flex items-center gap-3">
-              <!-- Botão Único para Salvar Alterações e Ir para os Grupos -->
-              <button type="button" @click="saveAndGoToGroups()" :disabled="saving"
-                      class="bg-[var(--evidence)] text-white hover:bg-blue-600 disabled:opacity-50 px-8 py-2.5 rounded-lg text-sm font-medium shadow transition flex items-center gap-2">
-                <span x-show="!saving">Manage Work Groups</span>
-                <span x-show="saving" class="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
-              </button>
-            </div>
+
+            <!-- Botão 1: Salvar e Ir para os Grupos -->
+            <button type="button" @click="saveAndGoToGroups()" class="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-50">
+              Next: Work Groups & Members
+            </button>
+
+            <!-- Botão 2: Salvar e Concluir (Voltar pra Dashboard) -->
+            <button type="button" @click="saveProject()" class="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 shadow">
+              Save Changes
+            </button>
           </div>
 
         </form>
@@ -171,14 +227,45 @@
     </div>
   </main>
 
+  <!-- 3. RODAPÉ INSTITUCIONAL (LARGURA COMPLETA) -->
+  <footer class="w-full border-t border-gray-200 bg-white px-6 py-8 text-cost mt-auto">
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-8">
+          <div class="w-full md:w-1/4 flex flex-col items-center justify-center text-center">
+              <img src="../assets/eu_flag.jpg" alt="EU Funded" class="max-h-[60px] w-auto mb-3 object-contain">
+              <img src="../assets/cost_logo.png" alt="COST Logo" class="max-h-[45px] w-auto object-contain">
+          </div>
+          <div class="w-full md:w-3/4 space-y-3 text-center md:text-left text-xs md:text-sm">
+              <p>
+                  This publication is based on work from <strong>COST Action AlertHub</strong>, 
+                  supported by COST (European Cooperation in Science and Technology).
+              </p>
+              <p>
+                  <strong>COST (European Cooperation in Science and Technology)</strong> is a funding organisation 
+                  for research and innovation networks. Our Actions help connect research initiatives across 
+                  Europe and beyond and enable scientists to grow their ideas by sharing them with their peers.
+                  This boosts their research, career and innovation. 
+              </p>
+              <p>
+                  <a href="https://www.cost.eu/" target="_blank" class="inline-flex items-center gap-1 font-bold no-underline hover:underline text-red-700">
+                      🔗 https://www.cost.eu/
+                  </a>
+              </p>
+          </div>
+      </div>
+  </footer>
+
   <script>
     function editProjectPage() {
+      const safeGetUser = typeof getUser === 'function' ? getUser : () => ({ name: 'Admin' });
+      const safeGetToken = typeof getToken === 'function' ? getToken : () => null;
+
       return {
-        user: getUser(),
+        user: safeGetUser(),
         saving: false,
         loading: true,
         error: '',
         projectId: null,
+        menuAberto: false,
         
         institutions: [],
         dbCountries: [],
@@ -199,7 +286,7 @@
         },
 
         async init() {
-          if (!getToken()) { window.location.href = '/index.html'; return; }
+          if (!safeGetToken()) { window.location.href = '../index.html'; return; }
           
           const params = new URLSearchParams(window.location.search);
           this.projectId = params.get('project_id');
@@ -282,11 +369,18 @@
           );
         },
 
-        // Função que unifica o salvamento automático com o redirecionamento
-        async saveAndGoToGroups() {
+        getSelectedCountries() {
+          return this.dbCountries.filter(c => this.project.country_ids.includes(c.id) || this.project.country_ids.includes(String(c.id)));
+        },
+
+        getSelectedLanguages() {
+          return this.dbLanguages.filter(l => this.project.language_ids.includes(l.id) || this.project.language_ids.includes(String(l.id)));
+        },
+
+        // Método para apenas salvar e voltar para a Dashboard (sem passar pelos grupos)
+        async saveProject() {
           this.error = '';
 
-          // Validações básicas do formulário
           if (!this.project.title || this.project.title.trim() === '') {
             this.error = "Project Title is required.";
             return;
@@ -314,10 +408,49 @@
               language_ids: this.project.language_ids
             };
 
-            // Salva as alterações
             await api.updateProject(this.projectId, payload);
             
-            // Redireciona de forma limpa para a tela de Grupos de Trabalho
+            // REDIRECIONA PARA A DASHBOARD AO INVÉS DOS GRUPOS
+            window.location.href = 'dashboard_admin.html';
+          } catch (e) {
+            this.error = `Error saving changes: ${e.message}`;
+          } finally {
+            this.saving = false;
+          }
+        },
+
+        async saveAndGoToGroups() {
+          this.error = '';
+
+          if (!this.project.title || this.project.title.trim() === '') {
+            this.error = "Project Title is required.";
+            return;
+          }
+          if (this.project.country_ids.length === 0) {
+            this.error = "Please select at least one country.";
+            return;
+          }
+          if (this.project.language_ids.length === 0) {
+            this.error = "Please select at least one language.";
+            return;
+          }
+
+          this.saving = true;
+          try {
+            const payload = {
+              titulo: this.project.title,
+              title: this.project.title,
+              description: this.project.description,
+              type: this.project.type,
+              instituicao_lider: this.project.lead_institution,
+              lead_institution: this.project.lead_institution,
+              status: this.project.status,
+              country_ids: this.project.country_ids,
+              language_ids: this.project.language_ids
+            };
+
+            await api.updateProject(this.projectId, payload);
+            
             window.location.href = `project_groups.html?project_id=${this.projectId}`;
           } catch (e) {
             this.error = `Error saving changes: ${e.message}`;
@@ -326,7 +459,10 @@
           }
         },
         
-        logout() { logout(); }
+        logout() { 
+          if (typeof logout === 'function') logout();
+          else window.location.href = '../index.html';
+        }
       };
     }
   </script>

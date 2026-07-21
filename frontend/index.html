@@ -10,44 +10,101 @@
 <link rel="stylesheet" href="src/shared/style.css" />
 <script src="src/shared/api.js"></script>
 
+<style>
+    body {
+        background-color: #ffffff; 
+    }
+    .text-cost {
+        color: #666666;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+</style>
 </head>
-<body class="min-h-screen flex items-center justify-center px-6">
 
-  <div class="w-full max-w-[420px]" x-data="loginForm()">
+<!-- min-h-screen flex flex-col justify-between garante que o rodapé fique sempre embaixo e o login no centro -->
+<body class="min-h-screen flex flex-col justify-between bg-white text-gray-800">
+    
+    <!-- 1. TOPO GLOBAL INTEGRADO -->
+    <nav class="bg-slate-900 text-white shadow-md w-full">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="/sysrev/" class="flex items-center gap-3 font-semibold text-lg hover:text-gray-200 transition-colors">
+                <!-- Removido o ../ do asset, pois a tag <base href="/sysrev/"> já define a raiz correta -->
+                <img src="src/assets/alerthub_logo.png" alt="AlertHub Logo" class="h-8 w-auto object-contain">
+                <span>Alert Hub</span>
+            </a>
+        </div>
+    </nav>
 
-    <div class="mb-10 text-center">
-      <h1 class="font-display text-3xl font-semibold">ReviewHub</h1>
-      <p class="text-[var(--muted)] text-sm mt-1">Scientific &amp; Technical Analisys</p>
-    </div>
+    <!-- 2. CONTEÚDO PRINCIPAL (MÓDULO DE LOGIN CENTRALIZADO) -->
+    <main class="flex-1 flex items-center justify-center px-6 py-12">
+        <div class="w-full max-w-[420px]" x-data="loginForm()">
 
-    <form @submit.prevent="submit" class="card p-8 space-y-5">
-      <div>
-        <label class="block text-sm font-medium mb-1.5" for="email">Email</label>
-        <input id="email" type="email" x-model="email" required autocomplete="username"
-          class="w-full border border-[var(--hairline)] rounded-lg px-3.5 py-2.5 bg-white focus:border-[var(--evidence)] outline-none"
-          placeholder="nome@instituicao.org" />
-      </div>
+            <!-- Cabeçalho do Formulário -->
+            <div class="mb-8 text-center">
+                <h1 class="font-display text-3xl font-bold text-gray-900">ReviewHub</h1>
+                <p class="text-gray-500 text-sm mt-1">Scientific &amp; Technical Analysis</p>
+            </div>
 
-      <div>
-        <label class="block text-sm font-medium mb-1.5" for="password">Password</label>
-        <input id="password" type="password" x-model="password" required autocomplete="current-password"
-          class="w-full border border-[var(--hairline)] rounded-lg px-3.5 py-2.5 bg-white focus:border-[var(--evidence)] outline-none"
-          placeholder="••••••••" />
-      </div>
+            <!-- Cartão de Login (Substituído estilos que quebravam por classes Tailwind nativas) -->
+            <form @submit.prevent="submit" class="bg-white border border-gray-200 rounded-xl p-8 shadow-sm space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="email">Email</label>
+                    <input id="email" type="email" x-model="email" required autocomplete="username"
+                        class="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
+                        placeholder="name@email.com" />
+                </div>
 
-      <p x-show="erro" x-text="erro" class="text-sm text-[var(--flag)]"></p>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5" for="password">Password</label>
+                    <input id="password" type="password" x-model="password" required autocomplete="current-password"
+                        class="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
+                        placeholder="••••••••" />
+                </div>
 
-      <button type="submit" :disabled="carregando"
-        class="btn-primary w-full text-center disabled:opacity-60">
-        <span x-show="!carregando">Login</span>
-        <span x-show="carregando">Logging…</span>
-      </button>
-    </form>
+                <!-- Alerta de erro com visual limpo -->
+                <p x-show="erro" x-text="erro" class="text-sm text-red-600 bg-red-50 p-2.5 rounded-md border border-red-100" style="display: none;"></p>
 
-    <p class="text-center text-xs text-[var(--muted)] mt-6">
-      Alerthub. Cost.
-    </p>
-  </div>
+                <!-- Botão Primário Tailwind Estilizado e Funcional -->
+                <button type="submit" :disabled="carregando"
+                    class="w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm shadow-sm disabled:opacity-60 transition-colors cursor-pointer">
+                    <span x-show="!carregando">Login</span>
+                    <span x-show="carregando">Logging…</span>
+                </button>
+            </form>
+
+            <p class="text-center text-xs text-gray-400 mt-6 tracking-wide">
+                Alerthub · ReviewHub
+            </p>
+        </div>
+    </main>
+
+    <!-- 3. RODAPÉ INSTITUCIONAL (LARGURA COMPLETA) -->
+    <footer class="w-full border-t border-gray-200 bg-gray-50/50 px-6 py-8 text-cost">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-8">
+            <div class="w-full md:w-1/4 flex flex-col items-center justify-center text-center">
+                <img src="src/assets/eu_flag.jpg" alt="EU Funded" class="max-h-[60px] w-auto mb-3 object-contain">
+                <img src="src/assets/cost_logo.png" alt="COST Logo" class="max-h-[45px] w-auto object-contain">
+            </div>
+            <div class="w-full md:w-3/4 space-y-3 text-center md:text-left text-xs md:text-sm">
+                <p>
+                    This publication is based on work from <strong>COST Action AlertHub</strong>, 
+                    supported by COST (European Cooperation in Science and Technology).
+                </p>
+                <p>
+                    <strong>COST (European Cooperation in Science and Technology)</strong> is a funding organisation 
+                    for research and innovation networks. Our Actions help connect research initiatives across 
+                    Europe and beyond and enable scientists to grow their ideas by sharing them with their peers.
+                    This boosts their research, career and innovation. 
+                </p>
+                <p>
+                    <a href="https://www.cost.eu/" target="_blank" class="inline-flex items-center gap-1 font-bold no-underline hover:underline text-red-700">
+                        🔗 https://www.cost.eu/
+                    </a>
+                </p>
+            </div>
+        </div>
+    </footer>
 
 <script>
 function loginForm() {

@@ -33,7 +33,7 @@
     <nav class="bg-slate-900 text-white shadow-md relative z-50">
         <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             <!-- Lado Esquerdo: Logo e Título -->
-            <a href="/sysrev" class="flex items-center gap-3 font-semibold text-lg hover:text-gray-200 transition-colors">
+            <a href="dashboard_admin.html" class="flex items-center gap-3 font-semibold text-lg hover:text-gray-200 transition-colors">
                 <img src="../assets/alerthub_logo.png" alt="AlertHub Logo" class="h-8 w-auto object-contain">
                 <span>Alert Hub</span>
             </a>
@@ -126,9 +126,8 @@
               <template x-for="p in projects" :key="p.id">
                 <div class="p-5 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
                   <div>
-                    <a :href="'project_groups.html?project_id=' + p.id" class="font-semibold text-blue-600 hover:text-blue-800 hover:underline text-base" x-text="p.title"></a>
+                    <a :href="'edit_project.html?project_id=' + p.id" class="font-semibold text-blue-600 hover:text-blue-800 hover:underline text-base" x-text="p.title"></a>
                     <p class="text-xs text-gray-500 mt-1">
-                      <span class="font-medium text-gray-700" x-text="p.type === 'scientific' ? 'PRISMA path' : 'GT2 path'"></span>
                       · <span x-text="p.lead_institution || 'No institution'"></span>
                     </p>
                   </div>
@@ -139,7 +138,7 @@
                           x-text="p.status"></span>
                     
                     <div class="flex items-center gap-2">
-                      <button @click="editProject(p.id)" class="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors">
+                      <button @click.stop="editProject(p.id)" class="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 transition-colors">
                         Edit
                       </button>
                       <button @click="deleteProject(p.id, p.title)" class="px-3 py-1.5 text-xs font-medium rounded-md border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
@@ -183,7 +182,7 @@
         </div>
     </footer>
 
-  </div>
+  
 
 <script>
 function adminDashboard() {
@@ -239,7 +238,7 @@ function adminDashboard() {
 
       try {
         this.carregando = true;
-        await api.deleteProjectMember(projectId);
+        await api.deleteProject(projectId);
         this.projects = this.projects.filter(p => p.id !== projectId);
         const updatedMetrics = await api.dashboardAdmin();
         this.metrics = updatedMetrics;

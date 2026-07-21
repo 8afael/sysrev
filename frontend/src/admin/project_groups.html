@@ -8,106 +8,157 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script src="../shared/api.js"></script>
   <style>
-    :root {
-      --ink: #1e293b;
-      --muted: #64748b;
-      --hairline: #e2e8f0;
-      --evidence: #3b82f6;
+    body {
+        background-color: #ffffff; 
+    }
+    .text-cost {
+        color: #666666;
+        font-size: 0.9rem;
+        line-height: 1.5;
     }
   </style>
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col font-sans text-slate-800" x-data="projectGroupsPage()" x-init="init()">
 
-  <header class="bg-white border-b border-[var(--hairline)] py-4 px-6 flex justify-between items-center shadow-sm">
-    <div class="flex items-center gap-3">
-      <span class="text-xl font-bold text-slate-900 tracking-tight">Sys<span class="text-[var(--evidence)]">Rev</span></span>
-    </div>
-    <div class="flex items-center gap-4">
-      <span class="text-sm text-[var(--muted)]">Project: <strong class="text-[var(--ink)]" x-text="projectTitle"></strong></span>
-      <button @click="logout" class="text-xs text-red-500 hover:underline">Sign out</button>
-    </div>
-  </header>
+  <!-- 1. TOPO GLOBAL INTEGRADO (ALERT HUB + MENU) -->
+  <nav class="bg-slate-900 text-white shadow-md relative z-50 w-full">
+      <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <!-- Lado Esquerdo: Logo e Título -->
+          <a href="dashboard_admin.html" class="flex items-center gap-3 font-semibold text-lg hover:text-gray-200 transition-colors">
+              <img src="../assets/alerthub_logo.png" alt="AlertHub Logo" class="h-8 w-auto object-contain">
+              <span>Alert Hub</span>
+          </a>
+          
+          <!-- Direita: Info do Usuário + Botão Hambúrguer Nativo -->
+          <div class="flex items-center gap-4">
+              <span class="text-gray-300 text-sm font-medium hidden sm:inline border-r border-slate-700 pr-4">
+                <strong class="text-white" x-text="projectTitle"></strong>
+              </span>
+              
+              <button @click="menuAberto = !menuAberto" type="button" class="text-gray-400 hover:text-white focus:outline-none p-1 rounded-md hover:bg-slate-800 transition-colors" aria-label="Toggle navigation">
+                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path x-show="!menuAberto" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                      <path x-show="menuAberto" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" style="display: none;" />
+                  </svg>
+              </button>
+          </div>
+      </div>
 
+      <!-- Menu Retrátil -->
+      <div x-show="menuAberto" @click.away="menuAberto = false" class="bg-slate-800 border-t border-slate-700 px-6 py-4 space-y-4 shadow-xl" style="display: none;">
+          <div>
+              <p class="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">ReviewHub Admin Workspace</p>
+              <div class="flex flex-wrap gap-3 items-center text-sm">
+                  <a href="dashboard_admin.html" class="text-white font-medium bg-blue-600 px-3 py-1.5 rounded-md shadow-sm">ReviewHub Dashboard</a>
+                  <a href="#" class="text-gray-300 hover:text-white px-2 py-1">Projects</a>
+                  <a href="#" class="text-gray-300 hover:text-white px-2 py-1">Users</a>
+                  <a href="#" class="text-gray-300 hover:text-white px-2 py-1">Disputes</a>
+                  <button @click="logout()" class="ml-auto text-xs bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white font-medium py-1.5 px-3 rounded-md transition-colors">Logout</button>
+              </div>
+          </div>
+      </div>
+  </nav>
+
+  <!-- 2. CONTEÚDO PRINCIPAL (MÓDULOS DO PASSO 2) -->
   <main class="flex-1 max-w-4xl w-full mx-auto p-6 my-8 space-y-8">
 
     <!-- PROGRESS STEPS WITH LINK TO GO BACK -->
     <div class="flex items-center justify-between px-4">
       <a :href="'new_project.html?project_id=' + projectId" class="flex items-center gap-2 group hover:opacity-100 transition cursor-pointer">
         <span class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 group-hover:bg-slate-300 flex items-center justify-center font-semibold text-sm">1</span>
-        <span class="text-sm font-medium text-slate-600 group-hover:text-[var(--ink)] group-hover:underline">Project Details</span>
+        <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900 group-hover:underline">Project Details</span>
       </a>
       <div class="h-0.5 flex-1 bg-slate-200 mx-4"></div>
       <div class="flex items-center gap-2">
-        <span class="w-8 h-8 rounded-full bg-[var(--evidence)] text-white flex items-center justify-center font-semibold text-sm">2</span>
-        <span class="text-sm font-semibold text-[var(--ink)]">Work Groups & Members</span>
+        <span class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm">2</span>
+        <span class="text-sm font-semibold text-slate-900">Work Groups & Members</span>
       </div>
     </div>
 
-    <div x-show="error" x-transition class="p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg" x-text="error" style="display: none;"></div>
+    <!-- MENSAGEM DE ERRO (ALERTA DE VALIDAÇÃO) -->
+    <div x-show="error" id="error-alert" x-transition class="p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg flex items-center justify-between shadow-sm" style="display: none;">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span x-text="error" class="font-medium"></span>
+      </div>
+      <button @click="error = ''" class="text-red-400 hover:text-red-600 font-bold ml-4 text-lg">&times;</button>
+    </div>
 
-    <div class="bg-white border border-[var(--hairline)] rounded-xl p-6 shadow-sm">
-      <h2 class="text-lg font-bold text-[var(--ink)] mb-1">Select Project Work Groups</h2>
-      <p class="text-xs text-[var(--muted)] mb-4">Select one or more work groups that will be active in this project.</p>
+    <!-- MÓDULO: SELECT WORK GROUPS -->
+    <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+      <h2 class="text-lg font-bold text-slate-900 mb-1">Select Project Work Groups</h2>
+      <p class="text-xs text-slate-500 mb-4">Select one or more work groups that will be active in this project.</p>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <template x-for="wg in workGroups" :key="wg.id">
           <div class="p-3 border rounded-lg transition relative cursor-pointer"
                @click="toggleGroup(wg.id)"
-               :class="selectedGroupIds.includes(wg.id) ? 'border-[var(--evidence)] bg-blue-50/30' : 'border-[var(--hairline)] hover:border-slate-300'">
+               :class="selectedGroupIds.includes(wg.id) ? 'border-blue-500 bg-blue-50/30' : 'border-gray-200 hover:border-slate-300'">
             <div class="flex items-start gap-2.5">
               <input type="checkbox" :value="wg.id" x-model="selectedGroupIds" @click.stop @change="saveGroups"
-                     class="mt-1 rounded text-[var(--evidence)] focus:ring-[var(--evidence)] border-[var(--hairline)]" />
+                     class="mt-1 rounded text-blue-600 focus:ring-blue-500 border-gray-300" />
               <div>
-                <h3 class="text-sm font-semibold text-[var(--ink)]" x-text="wg.name"></h3>
-                <p class="text-xs text-[var(--muted)] mt-0.5" x-text="wg.description || 'No description provided.'"></p>
+                <h3 class="text-sm font-semibold text-slate-900" x-text="wg.name"></h3>
+                <p class="text-xs text-slate-500 mt-0.5" x-text="wg.description || 'No description provided.'"></p>
               </div>
             </div>
           </div>
         </template>
         <template x-if="workGroups.length === 0">
-          <p class="text-sm text-[var(--muted)] col-span-2 text-center py-4">No work groups registered in the system database.</p>
+          <p class="text-sm text-slate-500 col-span-2 text-center py-4">No work groups registered in the system database.</p>
         </template>
       </div>
     </div>
 
-    <div class="bg-white border border-[var(--hairline)] rounded-xl p-6 shadow-sm">
+    <!-- MÓDULO: SEARCH AND ADD REVIEWERS -->
+    <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
       <div class="mb-4">
-        <h2 class="text-lg font-bold text-[var(--ink)]">Add Reviewers to Work Groups</h2>
-        <p class="text-xs text-[var(--muted)]">Search registered users and assign them to one of the active work groups selected above.</p>
+        <h2 class="text-lg font-bold text-slate-900">Add Reviewers to Work Groups</h2>
+        <p class="text-xs text-slate-500">Search registered users and assign them to one of the active work groups selected above.</p>
       </div>
 
       <div class="flex gap-3 mb-4">
         <input type="text" x-model="searchUser" placeholder="Search by name, email or institution..."
-               class="flex-1 border border-[var(--hairline)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--evidence)]" />
+               class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" />
       </div>
 
-      <div class="border border-[var(--hairline)] rounded-lg overflow-hidden max-h-80 overflow-y-auto">
+      <!-- Tabela com scroll manual (~10 itens visíveis) -->
+      <div class="border border-gray-200 rounded-lg overflow-y-auto max-h-[480px]">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50 text-xs font-semibold text-[var(--muted)] border-b border-[var(--hairline)] sticky top-0">
-              <th class="p-3">User info</th>
-              <th class="p-3">Institution</th>
-              <th class="p-3 text-right">Action</th>
+            <tr class="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-gray-200 sticky top-0 z-10">
+              <th class="p-3 bg-slate-50">User info</th>
+              <th class="p-3 bg-slate-50">Institution</th>
+              <th class="p-3 bg-slate-50 text-right">Action</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-[var(--hairline)] text-sm">
+          <tbody class="divide-y divide-gray-200 text-sm">
             <template x-for="usr in filteredUsers()" :key="usr.id">
               <tr class="hover:bg-slate-50/50 transition">
                 <td class="p-3">
-                  <div class="font-medium text-[var(--ink)]" x-text="usr.name"></div>
-                  <div class="text-xs text-[var(--muted)]" x-text="usr.email"></div>
+                  <div class="font-medium text-slate-900" x-text="usr.name"></div>
+                  <div class="text-xs text-slate-500" x-text="usr.email"></div>
                 </td>
                 <td class="p-3">
-                  <div class="text-slate-700" x-text="usr.institution || 'No Institution'"></div>
+                  <div class="text-slate-700 text-xs" x-text="usr.institution || 'No Institution'"></div>
                 </td>
                 <td class="p-3 text-right">
                   <button @click="addMember(usr.email)" :disabled="isAlreadyMember(usr.id) || !usr.active"
-                          class="text-xs px-3 py-1.5 rounded-lg border font-medium transition"
+                          class="text-xs px-3 py-1.5 rounded-lg border font-medium transition cursor-pointer"
                           :class="isAlreadyMember(usr.id) 
                             ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed' 
-                            : 'border-blue-200 text-[var(--evidence)] hover:bg-blue-50'">
+                            : 'border-blue-200 text-blue-600 hover:bg-blue-50'">
                     <span x-text="isAlreadyMember(usr.id) ? 'Added' : '+ Add Member' "></span>
                   </button>
+                </td>
+              </tr>
+            </template>
+            <template x-if="filteredUsers().length === 0">
+              <tr>
+                <td colspan="3" class="p-4 text-center text-xs text-slate-400">
+                  No reviewers found.
                 </td>
               </tr>
             </template>
@@ -116,39 +167,40 @@
       </div>
     </div>
 
-    <div class="bg-white border border-[var(--hairline)] rounded-xl p-6 shadow-sm">
+    <!-- MÓDULO: ACTIVE MEMBERS -->
+    <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
       <div class="flex justify-between items-center mb-4">
         <div>
-          <h2 class="text-lg font-bold text-[var(--ink)]">Active Project Members</h2>
-          <p class="text-xs text-[var(--muted)]">List of collaborators currently assigned to work groups in this project.</p>
+          <h2 class="text-lg font-bold text-slate-900">Active Project Members</h2>
+          <p class="text-xs text-slate-500">List of collaborators currently assigned to work groups in this project.</p>
         </div>
-        <span class="text-xs bg-slate-100 text-[var(--ink)] px-2.5 py-1 rounded-full font-medium">
+        <span class="text-xs bg-slate-100 text-slate-800 px-2.5 py-1 rounded-full font-medium">
           Total Members: <span x-text="members.length"></span>
         </span>
       </div>
 
-      <div class="border border-[var(--hairline)] rounded-lg overflow-hidden">
+      <div class="border border-gray-200 rounded-lg overflow-hidden mb-6">
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50 text-xs font-semibold text-[var(--muted)] border-b border-[var(--hairline)]">
+            <tr class="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-gray-200">
               <th class="p-3">Name</th>
               <th class="p-3">Project Name</th>
               <th class="p-3 text-right">Action</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-[var(--hairline)] text-sm">
+          <tbody class="divide-y divide-gray-200 text-sm">
             <template x-for="member in members" :key="member.id">
               <tr class="hover:bg-slate-50/50 transition">
                 <td class="p-3">
-                  <div class="font-medium text-[var(--ink)]" x-text="getUserName(member.user_id)"></div>
-                  <div class="text-xs text-[var(--muted)]" x-text="getUserEmail(member.user_id)"></div>
+                  <div class="font-medium text-slate-900" x-text="getUserName(member.user_id)"></div>
+                  <div class="text-xs text-slate-500" x-text="getUserEmail(member.user_id)"></div>
                 </td>
                 <td class="p-3">
                   <span class="inline-block text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-semibold" 
                         x-text="getGroupName(member.work_group_id)"></span>
                 </td>
                 <td class="p-3 text-right">
-                  <button @click="removeMember(member)" class="text-xs text-red-600 hover:text-red-800 font-medium">
+                  <button @click="removeMember(member)" class="text-xs text-red-600 hover:text-red-800 font-medium cursor-pointer">
                     Remove
                   </button>
                 </td>
@@ -156,7 +208,7 @@
             </template>
             <template x-if="members.length === 0">
               <tr>
-                <td colspan="3" class="p-6 text-center text-sm text-[var(--muted)]">
+                <td colspan="3" class="p-6 text-center text-sm text-slate-500">
                   No members added to this project yet. Use the sections above to select groups and add reviewers.
                 </td>
               </tr>
@@ -165,18 +217,47 @@
         </table>
       </div>
 
-      <!-- BOTTOM ACTIONS (CANCEL AND FINISH SETUP) -->
-      <div class="flex justify-end items-center gap-3 mt-8 pt-4 border-t border-[var(--hairline)]">
-        <button @click="cancelAndDestroyProject" class="border border-red-200 text-red-600 hover:bg-red-50 px-5 py-2.5 rounded-lg text-sm font-semibold transition">
-          Cancel Setup
+      <!-- BOTTOM ACTIONS (CANCEL, SAVE AND FINISH SETUP) -->
+      <div class="flex justify-end items-center gap-3 pt-6 border-t border-gray-200">
+        <button @click="goBack" class="border border-gray-300 text-slate-700 hover:bg-slate-100 px-5 py-2.5 rounded-lg text-sm font-semibold transition cursor-pointer">
+          Cancel
         </button>
-        <a href="dashboard_admin.html" class="bg-[var(--evidence)] text-white hover:bg-blue-600 px-6 py-2.5 rounded-lg text-sm font-semibold shadow transition">
+        <button @click="saveOnly" class="border border-blue-600 text-blue-600 hover:bg-blue-50 px-5 py-2.5 rounded-lg text-sm font-semibold transition cursor-pointer">
+          Save
+        </button>
+        <button @click="finishSetup" class="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2.5 rounded-lg text-sm font-semibold shadow transition inline-block cursor-pointer">
           Finish Project Setup
-        </a>
+        </button>
       </div>
-    </div>
 
   </main>
+
+  <!-- 3. RODAPÉ INSTITUCIONAL (LARGURA COMPLETA) -->
+  <footer class="w-full border-t border-gray-200 bg-white px-6 py-8 text-cost mt-auto">
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-8">
+          <div class="w-full md:w-1/4 flex flex-col items-center justify-center text-center">
+              <img src="../assets/eu_flag.jpg" alt="EU Funded" class="max-h-[60px] w-auto mb-3 object-contain">
+              <img src="../assets/cost_logo.png" alt="COST Logo" class="max-h-[45px] w-auto object-contain">
+          </div>
+          <div class="w-full md:w-3/4 space-y-3 text-center md:text-left text-xs md:text-sm">
+              <p>
+                  This publication is based on work from <strong>COST Action AlertHub</strong>, 
+                  supported by COST (European Cooperation in Science and Technology).
+              </p>
+              <p>
+                  <strong>COST (European Cooperation in Science and Technology)</strong> is a funding organisation 
+                  for research and innovation networks. Our Actions help connect research initiatives across 
+                  Europe and beyond and enable scientists to grow their ideas by sharing them with their peers.
+                  This boosts their research, career and innovation. 
+              </p>
+              <p>
+                  <a href="https://www.cost.eu/" target="_blank" class="inline-flex items-center gap-1 font-bold no-underline hover:underline text-red-700">
+                      🔗 https://www.cost.eu/
+                  </a>
+              </p>
+          </div>
+      </div>
+  </footer>
 
   <script>
     function projectGroupsPage() {
@@ -188,6 +269,7 @@
         projectTitle: 'Loading project...',
         searchUser: '',
         error: '',
+        menuAberto: false,
         
         workGroups: [], 
         selectedGroupIds: [], 
@@ -207,7 +289,7 @@
           }
 
           if (!safeGetToken()) { 
-            window.location.href = '/index.html'; 
+            window.location.href = '../index.html'; 
             return; 
           }
 
@@ -263,7 +345,7 @@
 
         filteredUsers() {
           if (!this.users) return [];
-          if (!this.searchUser) return this.users.slice(0, 10);
+          if (!this.searchUser) return this.users;
 
           const search = this.searchUser.toLowerCase();
           return this.users.filter(u => 
@@ -291,9 +373,7 @@
         },
 
         getGroupName(groupId) {
-          const wg = this.workGroups.find(g => g.id === groupId);
           return this.projectTitle || 'Unknown Project';
-          //return wg ? wg.name : 'Unknown Group';
         },
 
         toggleGroup(id) {
@@ -307,12 +387,44 @@
 
         async saveGroups() {
           try {
-            this.error = '';
             await api.updateProject(this.projectId, {
               work_group_ids: this.selectedGroupIds
             });
           } catch (e) {
             this.error = "Failed to associate work groups to project: " + e.message;
+          }
+        },
+
+        // VALIDAÇÃO EXIGINDO MIN. 1 WORKGROUP E MIN. 1 REVIEWER
+        // VALIDAÇÃO EXIGINDO MIN. 1 WORKGROUP E MIN. 1 REVIEWER
+        validateSetup() {
+          const hasGroups = this.selectedGroupIds && this.selectedGroupIds.length > 0;
+          const hasMembers = this.members && this.members.length > 0;
+
+          if (!hasGroups && !hasMembers) {
+            this.error = "Please select at least one work group and add at least one reviewer before proceeding.";
+          } else if (!hasGroups) {
+            this.error = "Please select at least one work group before proceeding.";
+          } else if (!hasMembers) {
+            this.error = "Please add at least one reviewer to the project before proceeding.";
+          } else {
+            this.error = '';
+            return true;
+          }
+
+          // Scroll para o topo da página para dar visibilidade ao alerta
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return false;
+        },
+
+        async finishSetup() {
+          if (!this.validateSetup()) return;
+
+          try {
+            await this.saveGroups();
+            window.location.href = 'dashboard_admin.html';
+          } catch (e) {
+            this.error = "Could not finish project setup: " + e.message;
           }
         },
 
@@ -347,44 +459,27 @@
             }
         },
 
-        // EXCLUI O PROJETO SE CONFIRMADO E VOLTA PARA A LISTAGEM
-        async cancelAndDestroyProject() {
-          const confirmed = confirm("Are you sure you want to abandon project creation? This will delete the project data permanently.");
-          if (!confirmed) return;
+        // CANCEL: Retorna ao passo anterior sem apagar o projeto
+        goBack() {
+          window.location.href = 'new_project.html?project_id=' + this.projectId;
+        },
 
+        // SAVE: Apenas grava as informações selecionadas e mantém na tela
+        async saveOnly() {
+          if (!this.validateSetup()) return;
+          
           try {
-            this.error = '';
-            
-            // Verifica se o seu arquivo api.js já possui o método implementado
-            if (typeof api.deleteProject === 'function') {
-              await api.deleteProject(this.projectId);
-            } else {
-              // Caso não tenha no api.js, fazemos a requisição direta usando o token de autenticação ativo
-              const token = safeGetToken();
-              const response = await fetch(`/sysrev/projects/${this.projectId}`, {
-                method: 'DELETE',
-                headers: {
-                  'Authorization': token ? `Bearer ${token}` : '',
-                  'Content-Type': 'application/json'
-                }
-              });
-
-              if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.message || `Server responded with status ${response.status}`);
-              }
-            }
-
-            // Redireciona para o painel de administração após apagar com sucesso
-            window.location.href = 'dashboard_admin.html';
+            await this.saveGroups();
+            alert("Project work groups saved successfully!");
           } catch (e) {
-            alert("Error trying to cancel and delete the project: " + e.message);
+            this.error = "Failed to save: " + e.message;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
           }
         },
 
         logout() { 
           if (typeof logout === 'function') logout();
-          else window.location.href = '/index.html';
+          else window.location.href = '../index.html';
         }
       };
     }
