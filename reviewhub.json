@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "coletajornaisgi",
+  "private_key_id": "797923115c0c9ec5101e2765e6b4e2405b6f401c",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDSNYAhyY6TzbWn\nlE2WZ1etU+yNSyDspumqfo0pA/4f5DQqmosk24SSaMU22syue4LFSpgIOpwXgKpX\nMfoW9nuZDCNHG6YR5GVbrkZE2KxqtOdqg/5POdlP48h+9YtsvfquMxPxlcvGd9dM\nd4jKDrbVre9R3Z6KJUKJqV1SGHrrUPUadcUMCThV3bDXC1VAbhdgff7ffkFZtQMR\nelcljno79wktbkB0sM89haIvIftop/W2MoQDkG4/DYu+Ye+IBNazNA5FOyjhciMq\n619uolVjUeQfD9gt/1q8M5/UcHzBFtetsUyabHthFsjc+iTjdoKAQ8Bguk6kHriS\nPs3HI2SNAgMBAAECggEAFIbwbvw3fdPz9fwbsoD/dRfRrP+F5M4s2b8XakavSW53\nsKRcS5pbIQ/1mDR4Ed7SR5FP9NfCV+Iy4CZreVQTAEBI7p/y0OL4ieIkDwOInLfz\nNDnU+ugXgj9oXAt+1LzdjqbCvw/lcQlRXzB6DV8v+ABO8zPc0DkwvPAqwoJM+I8H\nLyXiViMU1wEZpdu1MSt7nYTJ0uKKAoaRzovBkmz8tGgYRDF01DpwTkxpPb+2WACJ\nYoqtlxrd4Uiy3HwOtJzWcB03IWPd9GRD9KmYa0VGmDIh8bzEGLDJFmsbOwtOijFT\ntit+l5DLCU+bhTpYVgLRFquULqIw0VYXVrvqy+OKcQKBgQDz+gTKai2fhIa3QHvq\np412Ef11lBjH//eCSKWuPijwZvLD1IXbchMJqrFDTXSTUg89su1hPiBkW8lCUW5I\ne2mi8d2l5FcOtbAij+aQXjuC5Zr38rrgOxUzewQlcCcjg0P3wQiI1CETlovhyXxc\n8TMU3uPT4AJE4kplPV+D9bT88QKBgQDckXkXCFM4+HazOh9UezB2OZM7vAvYQG0T\nnZiz5aTqaP2QTwdLfekQN4wdwKr+J9Jvgb4TRPHBGVDSTblK6zkldONu9uq/qsOU\nGqv2TQvVhbc8qVkvc+oXmxnpSkEGYNcmETt//+GjIRw3DkvoEsdPNa8Nho3g3909\nJczWHw+RXQKBgH5ePIb/MfxSr1hRbR2ghXPnY4m4GJHW8cMoj7BNf/TszcdC18ZP\nMq8qG0CJ6Ny5fy1s9OkOPcbdh8Py25VtXszITA6106XJ055DPKAAPwDQnlDZB5RG\n5fdRO1eM3KjXP6ge8qW0giFcM73SF7koMVYZEJZYi7RUJUaE4GlAJetxAoGAdUvX\nfWwr9cwMM9vg9WhdqUGNDuM92U7JsvjIUEL7pL0YuzmLw5W976XamafwRyCeRDZX\nAqBTgEEaPfyfYTweM9EpccVVqYACaiyU7nKirHZjr5rPlvCpuMv+x5V5Zw7w24mm\nfrdxIvNksdKkg1IZNAJ0iVjY8pGacf48JFJ4UPECgYAboJvL5mABzHRa5XQN5gQn\nxykYOg7PiaU2UvtobDaZUCrhqlWQA2S8G6r9pdBW75EUBBcjIrFP9F4Ozi13eti/\nOFRIbrcEX733YzIs/GEQKxDwOYhY1tvGUN2jb8xZ8cDs9CKPVJYtq/Z8AqHbIOLk\nB5UDTD5BHYGdHuyKqOjLBQ==\n-----END PRIVATE KEY-----\n",
+  "client_email": "contapalavras@coletajornaisgi.iam.gserviceaccount.com",
+  "client_id": "117772549988550309698",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/contapalavras%40coletajornaisgi.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

@@ -1,14 +1,19 @@
 :80 {
     root * /srv
-    file_server
-    try_files {path} /sysrev/index.html
-
     encode gzip
 
-    @static {
-        path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2
+    handle /sysrev/api/* {
+        reverse_proxy sysrev_backend:9500
     }
-    header @static Cache-Control "public, max-age=2592000, immutable"
+
+    handle {
+        @static {
+        path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2
+        }
+        header @static Cache-Control "public, max-age=2592000, immutable"
+        try_files {path} /sysrev/index.html
+        file_server
+    }
 
     log {
         output stdout

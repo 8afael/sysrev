@@ -19,10 +19,10 @@ async def list_conflicts(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Admin sees all; Arbiter sees the ones they need to resolve; Reviewer has no access."""
+    """Admin sees all; referee sees the ones they need to resolve; Reviewer has no access."""
     role = await get_role_in_project(project_id, user, db)
-    if role not in (ProjectRole.admin, ProjectRole.arbiter):
-        raise HTTPException(status_code=403, detail="Only admins or arbiters can view conflicts")
+    if role not in (ProjectRole.admin, ProjectRole.referee):
+        raise HTTPException(status_code=403, detail="Only admins or referees can view conflicts")
 
     result = await db.execute(
         select(Conflict).join(Document).where(Document.project_id == project_id)
@@ -36,7 +36,7 @@ async def resolve_conflict(
     conflict_id: str,
     payload: ConflictResolve,
     user: User = Depends(get_current_user),
-    _role=Depends(require_role(ProjectRole.admin, ProjectRole.arbiter)),
+    _role=Depends(require_role(ProjectRole.admin, ProjectRole.referee)),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(select(Conflict).where(Conflict.id == conflict_id))
@@ -46,8 +46,8 @@ async def resolve_conflict(
 
     conflict.status = ConflictStatus.resolved
     conflict.final_decision = payload.final_decision
-    conflict.arbiter_justification = payload.arbiter_justification
-    conflict.arbiter_id = user.id
+    conflict.referee_justification = payload.referee_justification
+    conflict.referee_id = user.id
     conflict.resolved_at = datetime.utcnow()
 
     await log_audit(

@@ -2,9 +2,11 @@ import enum
 
 
 class ProjectRole(str, enum.Enum):
-    admin = "admin"          # Admin / Project Manager (MVP)
-    reviewer = "reviewer"    # Reviewer
-    arbiter = "arbiter"      # Third reviewer / conflict arbiter
+    admin = "admin"       
+    referee = "referee"   
+    owner = "owner"
+    reviewer = "reviewer"
+    reviewer1 = "reviewer1" 
 
 
 class ProjectType(str, enum.Enum):

@@ -1,0 +1,382 @@
+    <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReviewHub - Form Builder</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    .drag-ghost { opacity: 0.4; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Header Top Bar -->
+  <header class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-30 flex items-center justify-between shadow-sm">
+    <div class="flex items-center space-x-4">
+      <a id="btnBack" href="#" class="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors">
+        <i class="fa-solid fa-arrow-left text-lg"></i>
+      </a>
+      <div>
+        <h1 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-file-pen text-indigo-600"></i> Extraction Form Builder
+        </h1>
+        <p class="text-xs text-slate-500" id="projectTitleDisplay">Loading project...</p>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-3">
+      <button id="btnSaveForm" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg shadow-sm flex items-center space-x-2 transition-all">
+        <i class="fa-solid fa-floppy-disk"></i>
+        <span>Save Form Schema</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 hidden z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 transition-all duration-300">
+    <i id="toastIcon" class="fa-solid fa-check text-emerald-400"></i>
+    <span id="toastMsg" class="text-sm font-medium">Message here</span>
+  </div>
+
+  <!-- Main Canvas container -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-6 space-y-6">
+
+    <!-- Form Metadata Header Box -->
+    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Form Title</label>
+        <input type="text" id="formTitle" class="w-full text-2xl font-bold text-slate-900 border-b border-transparent hover:border-slate-300 focus:border-indigo-600 focus:outline-none py-1 transition-all" placeholder="e.g. Data Extraction & Quality Form" />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Instructions for Reviewers</label>
+        <textarea id="formDescription" rows="2" class="w-full text-slate-600 text-sm border border-slate-200 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-y" placeholder="Describe instructions or guidelines for reviewers filling out this form..."></textarea>
+      </div>
+    </div>
+
+    <!-- Sections Container -->
+    <div id="sectionsContainer" class="space-y-6">
+      <!-- Sections injected dynamically via JS -->
+    </div>
+
+    <!-- Add Section Button -->
+    <button id="btnAddSection" class="w-full py-4 border-2 border-dashed border-slate-300 hover:border-indigo-500 hover:bg-indigo-50/50 rounded-xl text-slate-600 hover:text-indigo-600 font-semibold flex items-center justify-center gap-2 transition-all">
+      <i class="fa-solid fa-plus-circle text-lg"></i>
+      <span>Add New Section</span>
+    </button>
+  </main>
+
+  <!-- Load api.js -->
+  <script src="/sysrev/static/shared/api.js"></script>
+
+  <script>
+    // State
+    const urlParams = new URLSearchParams(window.location.search);
+    const projectId = urlParams.get('project_id');
+
+    let formState = {
+      title: "Data Extraction & Quality Assessment",
+      description: "Please complete all required fields for the assigned document.",
+      structure: {
+        sections: []
+      }
+    };
+
+    // Helper: Toast Notifications
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.textContent = msg;
+      toastIcon.className = isError ? "fa-solid fa-triangle-exclamation text-rose-400" : "fa-solid fa-check text-emerald-400";
+      
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
+
+    // Init Page
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!projectId) {
+        showToast("No project_id specified in URL", true);
+        return;
+      }
+
+      document.getElementById('btnBack').href = `/sysrev/admin/project_details.html?project_id=${projectId}`;
+
+      try {
+        // Load Project Details
+        const project = await api.getProject(projectId);
+        document.getElementById('projectTitleDisplay').textContent = project.title || "Project Form Setup";
+
+        // Load Form Schema if exists
+        try {
+          const existingForm = await api.getProjectForm(projectId);
+          if (existingForm) {
+            formState.title = existingForm.title || formState.title;
+            formState.description = existingForm.description || "";
+            formState.structure = existingForm.structure && existingForm.structure.sections 
+              ? existingForm.structure 
+              : { sections: [createDefaultSection()] };
+          }
+        } catch (_) {
+          // Schema doesn't exist yet, seed default empty section
+          formState.structure.sections = [createDefaultSection()];
+        }
+
+        renderForm();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    });
+
+    function createDefaultSection() {
+      return {
+        id: "sec_" + Date.now(),
+        title: "General Information",
+        description: "",
+        questions: []
+      };
+    }
+
+    function createDefaultQuestion() {
+      return {
+        id: "q_" + Date.now(),
+        label: "Untitled Question",
+        type: "text", // text, textarea, select, checkbox, number
+        required: true,
+        options: ["Option 1", "Option 2"]
+      };
+    }
+
+    // Render Canvas
+    function renderForm() {
+      document.getElementById('formTitle').value = formState.title;
+      document.getElementById('formDescription').value = formState.description;
+
+      const container = document.getElementById('sectionsContainer');
+      container.innerHTML = '';
+
+      formState.structure.sections.forEach((sec, secIdx) => {
+        container.appendChild(buildSectionHTML(sec, secIdx));
+      });
+    }
+
+    // Build Section Box HTML Component
+    function buildSectionHTML(sec, secIdx) {
+      const sectionEl = document.createElement('div');
+      sectionEl.className = "bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4 relative group";
+
+      sectionEl.innerHTML = `
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 gap-4">
+          <div class="flex-1 space-y-1">
+            <input type="text" value="${escapeHtml(sec.title)}" data-sec="${secIdx}" class="sec-title-input text-lg font-bold text-slate-800 w-full focus:outline-none focus:border-b focus:border-indigo-500 py-1" placeholder="Section Title" />
+            <input type="text" value="${escapeHtml(sec.description || '')}" data-sec="${secIdx}" class="sec-desc-input text-xs text-slate-500 w-full focus:outline-none focus:border-b focus:border-indigo-500" placeholder="Optional section description/instructions" />
+          </div>
+          <button data-sec="${secIdx}" class="btn-delete-sec text-slate-400 hover:text-rose-600 p-2 rounded-lg transition-colors" title="Delete Section">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+
+        <!-- Questions List inside Section -->
+        <div class="space-y-4 py-2" id="qContainer_${secIdx}">
+          ${sec.questions.length === 0 
+            ? `<p class="text-xs text-slate-400 italic text-center py-4 bg-slate-50/50 rounded-lg border border-dashed border-slate-200">No questions in this section yet.</p>` 
+            : sec.questions.map((q, qIdx) => buildQuestionHTML(q, secIdx, qIdx)).join('')}
+        </div>
+
+        <!-- Add Question Button -->
+        <button data-sec="${secIdx}" class="btn-add-q text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100/70 px-4 py-2 rounded-lg flex items-center gap-2 transition-all">
+          <i class="fa-solid fa-plus"></i> Add Question
+        </button>
+      `;
+
+      // Event Listeners for Section
+      sectionEl.querySelector('.sec-title-input').addEventListener('input', (e) => {
+        formState.structure.sections[secIdx].title = e.target.value;
+      });
+
+      sectionEl.querySelector('.sec-desc-input').addEventListener('input', (e) => {
+        formState.structure.sections[secIdx].description = e.target.value;
+      });
+
+      sectionEl.querySelector('.btn-delete-sec').addEventListener('click', () => {
+        formState.structure.sections.splice(secIdx, 1);
+        renderForm();
+      });
+
+      sectionEl.querySelector('.btn-add-q').addEventListener('click', () => {
+        formState.structure.sections[secIdx].questions.push(createDefaultQuestion());
+        renderForm();
+      });
+
+      // Delegate Question Field Events
+      attachQuestionEvents(sectionEl, secIdx);
+
+      return sectionEl;
+    }
+
+    // Build Individual Question Card HTML
+    function buildQuestionHTML(q, secIdx, qIdx) {
+      const showOptions = ['select', 'checkbox'].includes(q.type);
+
+      return `
+        <div class="border border-slate-200 rounded-lg p-4 bg-slate-50/50 space-y-3 relative hover:border-slate-300 transition-all">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1">
+              <input type="text" value="${escapeHtml(q.label)}" data-q-field="label" data-q-idx="${qIdx}" class="w-full text-sm font-semibold text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-600 focus:outline-none pb-1" placeholder="Question Title / Label" />
+            </div>
+
+            <!-- Field Type Select -->
+            <select data-q-field="type" data-q-idx="${qIdx}" class="text-xs font-medium bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+              <option value="text" ${q.type === 'text' ? 'selected' : ''}>Short Text</option>
+              <option value="textarea" ${q.type === 'textarea' ? 'selected' : ''}>Paragraph Text</option>
+              <option value="select" ${q.type === 'select' ? 'selected' : ''}>Dropdown (Single Choice)</option>
+              <option value="checkbox" ${q.type === 'checkbox' ? 'selected' : ''}>Checkboxes (Multiple Choice)</option>
+              <option value="number" ${q.type === 'number' ? 'selected' : ''}>Numeric Value</option>
+            </select>
+
+            <button data-q-idx="${qIdx}" class="btn-delete-q text-slate-400 hover:text-rose-600 p-1 rounded" title="Delete Question">
+              <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+          </div>
+
+          <!-- Options Editor for Dropdown / Checkboxes -->
+          ${showOptions ? `
+            <div class="pl-2 border-l-2 border-indigo-200 space-y-2 mt-2">
+              <label class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Answer Options</label>
+              <div class="space-y-1.5">
+                ${(q.options || []).map((opt, optIdx) => `
+                  <div class="flex items-center gap-2">
+                    <input type="text" value="${escapeHtml(opt)}" data-opt-idx="${optIdx}" data-q-idx="${qIdx}" class="opt-input text-xs border border-slate-200 rounded px-2 py-1 w-full max-w-xs focus:outline-none focus:border-indigo-500" />
+                    <button data-opt-idx="${optIdx}" data-q-idx="${qIdx}" class="btn-del-opt text-slate-400 hover:text-rose-500"><i class="fa-solid fa-trash"></i></button>
+                  </div>
+                `).join('')}
+              </div>
+              <button data-q-idx="${qIdx}" class="btn-add-opt text-xs text-indigo-600 font-medium hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-plus text-[10px]"></i> Add Option
+              </button>
+            </div>
+          ` : ''}
+
+          <!-- Footer Options -->
+          <div class="flex items-center justify-between pt-2 border-t border-slate-200/60 text-xs">
+            <label class="flex items-center gap-2 text-slate-600 cursor-pointer">
+              <input type="checkbox" ${q.required ? 'checked' : ''} data-q-field="required" data-q-idx="${qIdx}" class="rounded text-indigo-600 focus:ring-indigo-500" />
+              <span>Required response</span>
+            </label>
+          </div>
+        </div>
+      `;
+    }
+
+    // Question Event Handlers Attachment
+    function attachQuestionEvents(sectionEl, secIdx) {
+      // Input Label & Options change
+      sectionEl.addEventListener('input', (e) => {
+        const qIdx = e.target.getAttribute('data-q-idx');
+        const field = e.target.getAttribute('data-q-field');
+
+        if (qIdx !== null && field) {
+          formState.structure.sections[secIdx].questions[qIdx][field] = e.target.value;
+        }
+
+        if (e.target.classList.contains('opt-input')) {
+          const optIdx = e.target.getAttribute('data-opt-idx');
+          formState.structure.sections[secIdx].questions[qIdx].options[optIdx] = e.target.value;
+        }
+      });
+
+      // Field Changes (Select type / Checkbox required)
+      sectionEl.addEventListener('change', (e) => {
+        const qIdx = e.target.getAttribute('data-q-idx');
+        const field = e.target.getAttribute('data-q-field');
+
+        if (qIdx !== null && field === 'type') {
+          formState.structure.sections[secIdx].questions[qIdx].type = e.target.value;
+          renderForm();
+        }
+
+        if (qIdx !== null && field === 'required') {
+          formState.structure.sections[secIdx].questions[qIdx].required = e.target.checked;
+        }
+      });
+
+      // Clicks (Delete Q, Add/Del Option)
+      sectionEl.addEventListener('click', (e) => {
+        const btnDeleteQ = e.target.closest('.btn-delete-q');
+        if (btnDeleteQ) {
+          const qIdx = btnDeleteQ.getAttribute('data-q-idx');
+          formState.structure.sections[secIdx].questions.splice(qIdx, 1);
+          renderForm();
+          return;
+        }
+
+        const btnAddOpt = e.target.closest('.btn-add-opt');
+        if (btnAddOpt) {
+          const qIdx = btnAddOpt.getAttribute('data-q-idx');
+          if (!formState.structure.sections[secIdx].questions[qIdx].options) {
+            formState.structure.sections[secIdx].questions[qIdx].options = [];
+          }
+          formState.structure.sections[secIdx].questions[qIdx].options.push(`Option ${formState.structure.sections[secIdx].questions[qIdx].options.length + 1}`);
+          renderForm();
+          return;
+        }
+
+        const btnDelOpt = e.target.closest('.btn-del-opt');
+        if (btnDelOpt) {
+          const qIdx = btnDelOpt.getAttribute('data-q-idx');
+          const optIdx = btnDelOpt.getAttribute('data-opt-idx');
+          formState.structure.sections[secIdx].questions[qIdx].options.splice(optIdx, 1);
+          renderForm();
+          return;
+        }
+      });
+    }
+
+    // Add Section Handler
+    document.getElementById('btnAddSection').addEventListener('click', () => {
+      formState.structure.sections.push(createDefaultSection());
+      renderForm();
+    });
+
+    // Form Header inputs
+    document.getElementById('formTitle').addEventListener('input', (e) => {
+      formState.title = e.target.value;
+    });
+
+    document.getElementById('formDescription').addEventListener('input', (e) => {
+      formState.description = e.target.value;
+    });
+
+    // SAVE Form Schema API Trigger
+    document.getElementById('btnSaveForm').addEventListener('click', async () => {
+      const btn = document.getElementById('btnSaveForm');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Saving...</span>`;
+
+      try {
+        const payload = {
+          title: formState.title || "Untitled Form",
+          description: formState.description || "",
+          structure: formState.structure
+        };
+
+        await api.saveProjectForm(projectId, payload);
+        showToast("Form schema saved successfully!");
+      } catch (err) {
+        showToast(err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Save Form Schema</span>`;
+      }
+    });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+  </script>
+</body>
+</html>

@@ -112,10 +112,14 @@
 
           <!-- DROPZONE / UPLOAD INPUT -->
           <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-slate-50 hover:bg-slate-100/60 transition relative"
-               :class="{ 'opacity-50 pointer-events-none': documents.length >= 10 }">
-            <input type="file" multiple accept="application/pdf" @change="handleFileUpload" 
-                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                   :disabled="documents.length >= 10" />
+                :class="{ 'opacity-50 pointer-events-none': documents.length >= 10 || isLoading }">
+            <input 
+                type="file" 
+                multiple 
+                accept="application/pdf" 
+                @change="handleFileUpload($event)" 
+                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                :disabled="documents.length >= 10 || isLoading" />
             
             <div class="space-y-2">
               <svg class="w-10 h-10 text-slate-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -134,6 +138,7 @@
               <thead>
                 <tr class="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-gray-200">
                   <th class="p-3">File Name</th>
+                  <th class="p-3">Status</th>
                   <th class="p-3">Size</th>
                   <th class="p-3 text-right">Action</th>
                 </tr>
@@ -141,10 +146,18 @@
               <tbody class="divide-y divide-gray-200 text-sm">
                 <template x-for="(doc, idx) in documents" :key="doc.id || idx">
                   <tr class="hover:bg-slate-50 transition">
-                    <td class="p-3 font-medium text-slate-800" x-text="doc.name"></td>
+                    <td class="p-3 font-medium text-slate-800" x-text="getDocTitle(doc)"></td>
+                    <td class="p-3 text-xs">
+                      <span x-show="doc.isSaved" class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
+                        ✓ Saved
+                      </span>
+                      <span x-show="!doc.isSaved" class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-medium">
+                        Pending Upload
+                      </span>
+                    </td>
                     <td class="p-3 text-xs text-slate-500" x-text="formatBytes(doc.size)"></td>
                     <td class="p-3 text-right">
-                      <button @click="removeDocument(idx)" class="text-xs text-red-600 hover:text-red-800 font-medium">Remove</button>
+                      <button @click="removeDocument(idx)" :disabled="isLoading" class="text-xs text-red-600 hover:text-red-800 font-medium">Remove</button>
                     </td>
                   </tr>
                 </template>
@@ -153,44 +166,148 @@
           </div>
         </div>
 
-        <!-- SECTION: ASSIGN DOCUMENTS -->
+        <!-- PAINEL: MÉTODO DE DISTRIBUIÇÃO -->
         <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm" x-show="documents.length > 0">
-          <h3 class="text-base font-bold text-slate-900 mb-1">Assign Documents to Members</h3>
-          <p class="text-xs text-slate-500 mb-4">Choose how you want to distribute the uploaded documents among reviewers.</p>
+          <h3 class="text-base font-bold text-slate-900 mb-1">Document Distribution Method</h3>
+          <p class="text-xs text-slate-500 mb-4">Choose how you want to distribute the uploaded documents among the team members.</p>
 
-          <div class="flex items-center gap-4 mb-6">
-            <button @click="assignmentMethod = 'manual'" 
-                    class="px-4 py-2 rounded-lg text-xs font-semibold transition cursor-pointer"
-                    :class="assignmentMethod === 'manual' ? 'bg-blue-600 text-white' : 'border border-gray-300 text-slate-700 hover:bg-slate-50'">
-              Manual Assignment
-            </button>
-            <button @click="autoAssignDocuments()" 
-                    class="px-4 py-2 rounded-lg text-xs font-semibold border border-blue-600 text-blue-600 hover:bg-blue-50 transition cursor-pointer">
-              ⚡ Automatic Random Assignment
-            </button>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <!-- Opção Manual -->
+            <label class="p-4 border rounded-xl cursor-pointer transition flex items-start gap-3"
+                   :class="distributionMethod === 'manual' ? 'border-blue-500 bg-blue-50/30 ring-2 ring-blue-500/20' : 'border-gray-200 hover:border-slate-300'">
+              <input type="radio" name="dist_method" value="manual" x-model="distributionMethod" class="mt-1 text-blue-600 focus:ring-blue-500" />
+              <div>
+                <span class="font-semibold text-slate-900 text-sm block">Manual Distribution</span>
+                <span class="text-xs text-slate-500">Manually select or remove reviewers for each document below.</span>
+              </div>
+            </label>
+
+            <!-- Opção Automática -->
+            <label class="p-4 border rounded-xl cursor-pointer transition flex items-start gap-3"
+                   :class="distributionMethod === 'auto' ? 'border-blue-500 bg-blue-50/30 ring-2 ring-blue-500/20' : 'border-gray-200 hover:border-slate-300'">
+              <input type="radio" name="dist_method" value="auto" x-model="distributionMethod" @change="runAutoDistribution()" class="mt-1 text-blue-600 focus:ring-blue-500" />
+              <div>
+                <span class="font-semibold text-slate-900 text-sm block">Automatic Distribution</span>
+                <span class="text-xs text-slate-500">Randomly and equally distribute documents among all active members.</span>
+              </div>
+            </label>
           </div>
 
-          <!-- MANUAL ASSIGNMENT TABLE -->
-          <div x-show="assignmentMethod === 'manual'" class="border border-gray-200 rounded-lg overflow-hidden">
+          <!-- RESUMO DA DISTRIBUIÇÃO AUTOMÁTICA -->
+          <div x-show="distributionMethod === 'auto'" x-transition class="border border-blue-200 bg-blue-50/40 rounded-xl p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="text-sm font-bold text-blue-900">Automatic Distribution Summary</h4>
+                <p class="text-xs text-blue-700">Documents have been randomly assigned to balance workload per reviewer.</p>
+              </div>
+              <button @click="runAutoDistribution()" type="button" class="text-xs bg-white border border-blue-300 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1 shadow-xs">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Reshuffle / Re-distribute</span>
+              </button>
+            </div>
+
+            <!-- CARDS DE MEMBROS E ARQUIVOS ATRIBUÍDOS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+                <template x-for="m in members" :key="m.user_id">
+                    <div class="bg-white border border-slate-200 rounded-lg p-3 text-xs shadow-xs">
+                    <div class="flex justify-between items-center gap-2 mb-2 pb-1 border-b border-slate-100">
+                        <span class="font-bold text-slate-800 truncate" x-text="getUserName(m.user_id)" :title="getUserName(m.user_id)"></span>
+                        <span class="bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap shrink-0 text-[11px]" x-text="getDocsAssignedToUser(m.user_id).length + ' docs'"></span>
+                    </div>
+                    <ul class="space-y-1 text-slate-600 list-disc list-inside truncate">
+                        <template x-for="doc in getDocsAssignedToUser(m.user_id)" :key="doc.id">
+                        <li class="truncate" :title="doc.title || doc.name" x-text="doc.title || doc.name"></li>
+                        </template>
+                        <template x-if="getDocsAssignedToUser(m.user_id).length === 0">
+                        <li class="italic text-slate-400 list-none">No documents assigned</li>
+                        </template>
+                    </ul>
+                    </div>
+                </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION: ASSIGN DOCUMENTS TO MEMBERS (MODO MANUAL) -->
+        <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm" x-show="documents.length > 0 && distributionMethod === 'manual'">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900 mb-0.5">Assigned Members per Document</h3>
+              <p class="text-xs text-slate-500">By default, all members are selected for all documents. Click the <strong>&times;</strong> button on any member to remove them from a document.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button @click="assignAllToAll()" :disabled="isLoading" class="text-xs text-blue-600 hover:text-blue-800 font-medium border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition">
+                Assign All to All
+              </button>
+              <button @click="clearAllAssignments()" :disabled="isLoading" class="text-xs text-slate-600 hover:text-slate-800 font-medium border border-gray-200 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition">
+                Clear All
+              </button>
+            </div>
+          </div>
+
+          <!-- TABELA DE ATRIBUIÇÃO INTERATIVA -->
+          <div class="border border-gray-200 rounded-lg overflow-hidden">
             <table class="w-full text-left border-collapse">
               <thead>
                 <tr class="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-gray-200">
-                  <th class="p-3">Document Title</th>
-                  <th class="p-3">Assigned Reviewers</th>
+                  <th class="p-3 w-1/3">Document Title</th>
+                  <th class="p-3 w-2/3">Assigned Members (<span x-text="members.length"></span> Loaded)</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200 text-sm">
                 <template x-for="doc in documents" :key="doc.id">
                   <tr>
-                    <td class="p-3 font-medium text-slate-800" x-text="doc.name"></td>
-                    <td class="p-3">
-                      <select multiple class="w-full border border-gray-300 rounded-lg p-2 text-xs focus:ring-blue-500"
-                              x-model="doc.assignedUserIds">
-                        <template x-for="m in members" :key="m.user_id">
-                          <option :value="m.user_id" x-text="m.name || m.email"></option>
-                        </template>
-                      </select>
-                      <span class="text-[10px] text-slate-400">Hold Ctrl/Cmd to select multiple members</span>
+                    <td class="p-3 font-medium text-slate-800 align-top" x-text="getDocTitle(doc)"></td>
+                        <td class="p-3">
+                      
+                            <!-- BADGES COM NOME, PAPEL E BOTÃO DE REMOÇÃO -->
+                            <div class="flex flex-wrap gap-2 items-center min-h-[36px]">
+                                <template x-for="member in doc.assignedMembers" :key="member.user_id">
+                                <span class="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-800 text-xs pl-2.5 pr-1 py-1 rounded-full font-medium shadow-xs">
+                                    <span x-text="getUserName(member.user_id)"></span>
+                                    <select x-model="member.role"
+                                            :disabled="isLoading"
+                                            class="text-[11px] bg-white border border-blue-300 rounded-full px-1.5 py-0.5 text-blue-700 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer">
+                                    <option value="reviewer1">Reviewer 1</option>
+                                    <option value="reviewer2">Reviewer 2</option>
+                                    <option value="arbiter">Arbiter</option>
+                                    </select>
+                                    <button @click="removeMemberFromDoc(doc, member.user_id)"
+                                            :disabled="isLoading"
+                                            class="text-blue-400 hover:text-red-600 font-bold leading-none text-sm rounded-full p-0.5 hover:bg-red-50 transition"
+                                            title="Remove member from this document">
+                                    &times;
+                                    </button>
+                                </span>
+                                </template>
+
+                                <!-- AVISO SE NENHUM MEMBRO ESTIVER ATRIBUÍDO -->
+                                <span x-show="doc.assignedMembers.length === 0" class="text-xs italic text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                                ⚠️ No reviewers assigned
+                                </span>
+
+                                <!-- MENU DROPDOWN PARA ADICIONAR MEMBROS -->
+                                <div x-data="{ open: false }" class="relative" x-show="getUnassignedMembers(doc).length > 0">
+                                <button @click="open = !open" @click.outside="open = false"
+                                        :disabled="isLoading"
+                                        class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-full border border-slate-300 font-medium transition flex items-center gap-1">
+                                    <span>+ Add Member</span>
+                                </button>
+
+                                <div x-show="open" x-transition
+                                    class="absolute left-0 bottom-full mb-1 w-64 bg-white border border-gray-200 rounded-lg shadow-xl py-1 z-50 max-h-48 overflow-y-auto">
+                                    <template x-for="unassigned in getUnassignedMembers(doc)" :key="unassigned.user_id">
+                                    <button @click="addMemberToDoc(doc, unassigned.user_id); open = false"
+                                            class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition block truncate">
+                                        <span x-text="unassigned.displayName"></span>
+                                    </button>
+                                    </template>
+                                </div>
+                                </div>
+                            </div>
+                        </td>
                     </td>
                   </tr>
                 </template>
@@ -214,57 +331,217 @@
       </div>
     </template>
 
-    <!-- BOTTOM ACTIONS (CANCEL, SAVE, NEXT) -->
+    <!-- BOTTOM ACTIONS -->
     <div class="flex justify-end items-center gap-3 pt-6 border-t border-gray-200">
-      <button @click="goBack" class="border border-gray-300 text-slate-700 hover:bg-slate-100 px-5 py-2.5 rounded-lg text-sm font-semibold transition cursor-pointer">
+      <button @click="goBack" :disabled="isLoading" class="border border-gray-300 text-slate-700 hover:bg-slate-100 px-5 py-2.5 rounded-lg text-sm font-semibold transition cursor-pointer disabled:opacity-50">
         Cancel
       </button>
-      <button @click="saveOnly" class="border border-blue-600 text-blue-600 hover:bg-blue-50 px-5 py-2.5 rounded-lg text-sm font-semibold transition cursor-pointer">
-        Save
-      </button>
-      <button @click="saveAndProceed" class="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2.5 rounded-lg text-sm font-semibold shadow transition cursor-pointer">
-        Next (Screen 4)
+      <button @click="saveAndProceed" :disabled="isLoading" class="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2.5 rounded-lg text-sm font-semibold shadow transition cursor-pointer flex items-center gap-2 disabled:opacity-50">
+        <svg x-show="isLoading" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span x-text="isLoading ? 'Saving...' : 'Next: Form Builder'"></span>
       </button>
     </div>
-
   </main>
 
   <script>
     function projectDocumentsPage() {
-      // Limite atualizado para 5 MB em bytes
       const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
       return {
         projectId: '',
         projectTitle: 'Loading...',
-        providerType: 'admin', // 'admin' ou 'members'
-        assignmentMethod: 'manual',
+        providerType: 'admin',
+        distributionMethod: 'manual',
         memberInstructions: '',
         error: '',
         menuAberto: false,
+        isLoading: false,
         
         documents: [],
         members: [],
+        users: [],
+
+        getDocTitle(doc) {
+            if (!doc) return 'Untitled Document';
+
+            // 1. Procura em objeto aninhado
+            if (doc.document && typeof doc.document === 'object') {
+                const nested = this.getDocTitle(doc.document);
+                if (nested !== 'Untitled Document') return nested;
+            }
+
+            // 2. Mapeia todas as possíveis variações de chave vindas da API
+            const possibleTitle = doc.title || 
+                                  doc.filename || 
+                                  doc.file_name || 
+                                  doc.name || 
+                                  doc.original_filename || 
+                                  doc.document_title || 
+                                  doc.title_name ||
+                                  doc.doc_title;
+
+            if (possibleTitle && String(possibleTitle).trim() !== '' && String(possibleTitle).trim() !== 'undefined') {
+                return String(possibleTitle).trim();
+            }
+
+            return 'Untitled Document';
+        },
 
         async init() {
-          const params = new URLSearchParams(window.location.search);
-          this.projectId = params.get('project_id');
+            const params = new URLSearchParams(window.location.search);
+            this.projectId = params.get('project_id');
 
-          if (!this.projectId) {
-            alert('No project ID found. Redirecting...');
-            window.location.href = 'dashboard_admin.html';
+            if (!this.projectId) {
+                alert('No project ID found. Redirecting...');
+                window.location.href = 'dashboard_admin.html';
+                return;
+            }
+
+            if (typeof api !== 'undefined') {
+                try {
+                    // Tenta carregar os documentos ou atribuições
+                    const [project, responseMembers, responseUsers, existingDocs, existingAssignments] = await Promise.all([
+                    api.getProject(this.projectId),
+                    api.listProjectMembers(this.projectId),
+                    api.getUsers().catch(() => []),
+                    api.listDocuments ? api.listDocuments(this.projectId).catch(() => []) : [],
+                    api.listProjectAssignments ? api.listProjectAssignments(this.projectId).catch(() => []) : []
+                    ]);
+
+                    this.projectTitle = project?.title || project?.titulo || 'Untitled Project';
+                    this.users = Array.isArray(responseUsers) ? responseUsers : (responseUsers?.users || responseUsers?.data || []);
+
+                    let rawMembers = [];
+                    if (Array.isArray(responseMembers)) {
+                        rawMembers = responseMembers;
+                    } else if (responseMembers && Array.isArray(responseMembers.members)) {
+                        rawMembers = responseMembers.members;
+                    } else if (responseMembers && Array.isArray(responseMembers.data)) {
+                        rawMembers = responseMembers.data;
+                    }
+
+                    this.members = rawMembers.map(m => {
+                    const foundId = m.user_id || m.userId || m.id || m.member_id;
+                    return {
+                        user_id: foundId,
+                        role: m.role || 'reviewer'
+                    };
+                    }).filter(m => !!m.user_id);
+
+                    // 1. Tenta carregar via api.listDocuments
+                    if (Array.isArray(existingDocs) && existingDocs.length > 0) {
+                        this.documents = existingDocs.map(doc => {
+                            const assignedMembers = (doc.assignments || [])
+                                .map(a => ({
+                                    user_id: a.reviewer_id || a.reviewer?.id || a.user_id,
+                                    role: a.role || 'reviewer1'
+                                }))
+                                .filter(m => !!m.user_id);
+                            return {
+                                id: doc.id,
+                                title: this.getDocTitle(doc),
+                                size: doc.file_size || doc.size || 0,
+                                isSaved: true,
+                                rawFile: null,
+                                assignedMembers
+                            };
+                        });
+                    }
+                    else if (Array.isArray(existingAssignments) && existingAssignments.length > 0) {
+                        const docGroupMap = {};
+
+                        existingAssignments.forEach(asg => {
+                            const docId = asg.document_id || asg.documentId || asg.doc_id;
+                            if (!docId) return;
+
+                            const docTitle = this.getDocTitle(asg);
+
+                            if (!docGroupMap[docId]) {
+                                docGroupMap[docId] = {
+                                    id: docId,
+                                    title: docTitle,
+                                    size: asg.file_size || asg.size || 0,
+                                    isSaved: true,
+                                    rawFile: null,
+                                    assignedMembers: []
+                                };
+                            }
+                            const reviewerId = asg.reviewer_id || asg.user_id;
+                            if (reviewerId && !docGroupMap[docId].assignedMembers.some(m => m.user_id === reviewerId)) {
+                                docGroupMap[docId].assignedMembers.push({
+                                    user_id: reviewerId,
+                                    role: asg.role || 'reviewer1'   // 👈 já vem no payload, como você mostrou antes
+                                });
+                            }
+                        });
+
+                        this.documents = Object.values(docGroupMap);
+                    }
+
+                } catch(e) {
+                    console.error("Erro ao carregar dados da página:", e);
+                    this.error = "Error loading project data, members, or existing documents.";
+                }
+            }
+        },
+
+        // Função utilitária para formatar o tamanho do arquivo
+        formatBytes(bytes) {
+          if (!bytes || bytes === 0) return '0 Bytes';
+          const k = 1024;
+          const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+          return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        },
+
+        runAutoDistribution() {
+          if (this.documents.length === 0) return;
+          
+          const validMembers = this.members.map(m => m.user_id).filter(Boolean);
+          if (validMembers.length === 0) {
+            this.error = "No members available in this project to distribute documents to.";
             return;
           }
 
-          if (typeof api !== 'undefined') {
-            try {
-              const project = await api.getProject(this.projectId);
-              this.projectTitle = project.title || project.titulo || 'Untitled Project';
-              this.members = await api.listProjectMembers(this.projectId).catch(() => []);
-            } catch(e) {
-              this.error = "Error loading project configuration.";
-            }
+          this.documents.forEach(doc => doc.assignedUserIds = []);
+          const shuffledDocs = [...this.documents].sort(() => Math.random() - 0.5);
+          const shuffledMembers = [...validMembers].sort(() => Math.random() - 0.5);
+
+          shuffledDocs.forEach((doc, index) => {
+            const assignedMemberId = shuffledMembers[index % shuffledMembers.length];
+            doc.assignedMembers = [{ user_id: assignedMemberId, role: 'reviewer1' }];
+            });
+        },
+
+        getDocsAssignedToUser(userId) {
+            return this.documents.filter(d => d.assignedMembers.some(m => m.user_id === userId));
+            },
+
+        getUserName(userId) {
+          if (!userId) return 'Unknown User';
+
+          const found = this.users.find(u => String(u.id) === String(userId) || String(u.user_id) === String(userId));
+          
+          if (found) {
+            const name = found.name || found.full_name || found.username || 'User';
+            const email = found.email ? ` (${found.email})` : '';
+            return `${name}${email}`;
           }
+          
+          return `User (${String(userId).substring(0, 6)}...)`;
+        },
+
+        getUnassignedMembers(doc) {
+            const assignedIds = doc.assignedMembers.map(m => m.user_id);
+            return this.members
+                .filter(m => !assignedIds.includes(m.user_id))
+                .map(m => ({
+                ...m,
+                displayName: this.getUserName(m.user_id)
+                }));
         },
 
         handleFileUpload(e) {
@@ -274,49 +551,87 @@
           if (this.documents.length + files.length > 10) {
             this.error = "Limit exceeded: You can upload a maximum of 10 PDF documents per project.";
             window.scrollTo({ top: 0, behavior: 'smooth' });
+            e.target.value = '';
             return;
           }
 
+          const allMemberIds = this.members.map(m => m.user_id).filter(Boolean);
+
+          // 1. Valida todos os arquivos antes de adicionar
           for (let file of files) {
             if (file.type !== 'application/pdf') {
               this.error = `Invalid format: "${file.name}" is not a PDF file. Only PDF format is supported.`;
               window.scrollTo({ top: 0, behavior: 'smooth' });
+              e.target.value = '';
               return;
             }
 
             if (file.size > MAX_FILE_SIZE_BYTES) {
               this.error = `File too large: "${file.name}" exceeds the maximum limit of 5 MB.`;
               window.scrollTo({ top: 0, behavior: 'smooth' });
+              e.target.value = '';
               return;
             }
-
-            this.documents.push({
-              id: 'temp_' + Date.now() + Math.random(),
-              name: file.name,
-              size: file.size,
-              rawFile: file,
-              assignedUserIds: []
-            });
           }
+
+          // 2. Adiciona os arquivos
+          for (let file of files) {
+            const newDoc = {
+                id: 'temp_' + Date.now() + Math.random(),
+                name: file.name,
+                title: file.name,
+                size: file.size,
+                isSaved: false,
+                rawFile: file,
+                assignedMembers: this.distributionMethod === 'manual'
+                ? allMemberIds.map(id => ({ user_id: id, role: 'reviewer1' }))  // 👈
+                : []
+            };
+
+            this.documents.push(newDoc);
+            }
+
+          if (this.distributionMethod === 'auto') {
+            this.runAutoDistribution();
+          }
+
+          e.target.value = '';
         },
 
         removeDocument(index) {
           this.documents.splice(index, 1);
-        },
-
-        autoAssignDocuments() {
-          if (this.members.length === 0) {
-            this.error = "No reviewers available in project members. Please add members in Step 2 first.";
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            return;
+          if (this.distributionMethod === 'auto') {
+            this.runAutoDistribution();
           }
-
-          this.assignmentMethod = 'auto';
-          this.documents.forEach((doc, idx) => {
-            const memberIndex = idx % this.members.length;
-            doc.assignedUserIds = [this.members[memberIndex].user_id];
-          });
         },
+
+        removeMemberFromDoc(doc, memberId) {
+            doc.assignedMembers = doc.assignedMembers.filter(m => m.user_id !== memberId);
+        },
+
+        addMemberToDoc(doc, memberId) {
+            if (!doc.assignedMembers.some(m => m.user_id === memberId)) {
+                doc.assignedMembers.push({ user_id: memberId, role: 'reviewer1' });
+            }
+        },
+
+        assignAllToAll() {
+            const allMemberIds = this.members.map(m => m.user_id).filter(Boolean);
+            this.documents.forEach(doc => {
+                // mantém o papel já escolhido para quem já estava atribuído
+                doc.assignedMembers = allMemberIds.map(id => {
+                const existing = doc.assignedMembers.find(m => m.user_id === id);
+                return existing || { user_id: id, role: 'reviewer1' };
+                });
+            });
+        },
+        
+        clearAllAssignments() {
+            this.documents.forEach(doc => {
+                doc.assignedMembers = [];
+            });
+        },
+        
 
         validate() {
           if (this.providerType === 'admin') {
@@ -336,37 +651,139 @@
           return true;
         },
 
+        async submitData() {
+            this.isLoading = true;
+            this.error = '';
+
+            try {
+                // Separar documentos novos (com ficheiro) dos já guardados
+                const newDocs = this.documents.filter(d => d.rawFile);
+                const savedDocs = this.documents.filter(d => !d.rawFile && d.isSaved);
+
+                const token = typeof getToken === 'function' ? getToken() : '';
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '/sysrev/api';
+
+                // === CASO 1: upload de novos ficheiros ===
+                if (newDocs.length > 0) {
+                    const formData = new FormData();
+                    const assignments = [];
+
+                    newDocs.forEach((doc) => {
+                        formData.append('files', doc.rawFile);
+                        assignments.push({
+                            filename: doc.title || doc.name,
+                            assigned_members: doc.assignedMembers.map(m => ({ user_id: m.user_id, role: m.role }))  // 👈
+                        });
+                    });
+
+                    formData.append('assignments', JSON.stringify(assignments));
+
+                    const response = await fetch(
+                        `${baseUrl}/projects/${this.projectId}/documents/batch-upload`,
+                        { method: 'POST', headers, body: formData }
+                    );
+
+                    if (response.status === 401) {
+                        if (typeof logout === 'function') logout();
+                        throw new Error('Session expired. Login again.');
+                    }
+
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(this.formatApiError(errData) || 'Failed to upload documents.');
+                    }
+
+                    await response.json();
+                }
+
+                // === CASO 2: só alterações em atribuições de docs já gravados ===
+                // (Só executa se tiveres este endpoint disponível no backend.
+                //  Caso contrário, deixa este bloco comentado.)
+                
+                if (savedDocs.length > 0) {
+                    const payload = savedDocs.map(d => ({
+                        document_id: String(d.id).replace(/^saved_/, ''),
+                        assigned_members: d.assignedMembers.map(m => ({ user_id: m.user_id, role: m.role })),  // 👈
+                    }));
+
+                    const resp = await fetch(
+                        `${baseUrl}/projects/${this.projectId}/assignments/bulk-update`,
+                        {
+                            method: 'PUT',
+                            headers: { ...headers, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ documents: payload }),
+                        }
+                    );
+
+                    if (!resp.ok) {
+                        const errData = await resp.json().catch(() => ({}));
+                        throw new Error(this.formatApiError(errData) || 'Failed to update assignments.');
+                    }
+                }
+
+                // Se não havia nada para gravar, apenas sinaliza sucesso silencioso
+                return true;
+
+            } catch (e) {
+                this.error = e.message || 'Unexpected error.';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                throw e;
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        // Converte a estrutura de erro do FastAPI/Pydantic em string legível
+        formatApiError(errData) {
+            if (!errData) return '';
+            if (typeof errData.detail === 'string') return errData.detail;
+            if (Array.isArray(errData.detail)) {
+                return errData.detail
+                    .map(d => {
+                        const loc = Array.isArray(d.loc) ? d.loc.join('.') : '';
+                        return `${loc}: ${d.msg}`;
+                    })
+                    .join(' | ');
+            }
+            if (typeof errData.detail === 'object') {
+                try { return JSON.stringify(errData.detail); } catch { return ''; }
+            }
+            return '';
+        },
+
         async saveOnly() {
-          if (!this.validate()) return;
-          try {
-            alert("Document configuration saved successfully!");
-          } catch(e) {
-            this.error = "Failed to save document settings: " + e.message;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
+            if (!this.validate()) return;
+            try {
+                const hasNewFiles = this.documents.some(d => d.rawFile);
+
+                await this.submitData();
+
+                if (hasNewFiles) {
+                    alert('Progress saved successfully!');
+                    window.location.reload();
+                } else {
+                    // Nada de novo para gravar no servidor
+                    alert('No new files to upload. Existing assignments remain unchanged.');
+                }
+            } catch (e) {
+                console.error(e);
+            }
         },
 
         async saveAndProceed() {
-          if (!this.validate()) return;
-          try {
-            window.location.href = `screen_4.html?project_id=${this.projectId}`;
-          } catch(e) {
-            this.error = "Failed to proceed: " + e.message;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
+            if (!this.validate()) return;
+            try {
+                await this.submitData();
+                window.location.href = `form_builder.html?project_id=${this.projectId}`;
+            } catch (e) {
+                console.error(e);
+            }
         },
 
         goBack() {
-          window.location.href = `project_groups.html?project_id=${this.projectId}`;
+          window.history.back();
         },
-
-        formatBytes(bytes) {
-          if (bytes === 0) return '0 Bytes';
-          const k = 1024;
-          const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-          const i = Math.floor(Math.log(bytes) / Math.log(k));
-          return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
       };
     }
   </script>

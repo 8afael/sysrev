@@ -1,89 +1,56 @@
-import io
-import json
 import os
-from typing import Tuple, Optional
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
+import uuid
+import boto3
+from botocore.exceptions import BotoCoreError, ClientError
+from fastapi import HTTPException, status
+from typing import Tuple, BinaryIO
 
-from dotenv import load_dotenv
-load_dotenv(".env")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+AWS_BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME", "bucketreviewhub")
 
-# Escopo necessário para ler e escrever arquivos criados no Drive
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
+s3_client = boto3.client(
+    "s3",
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+    region_name=AWS_REGION
+)
 
-def _get_drive_service():
-    """
-    Inicializa o cliente da API do Google Drive usando as credenciais da Service Account.
-    Geralmente lido de um arquivo 'credentials.json' ou de uma variável de ambiente GOOGLE_CREDENTIALS_JSON.
-    """
-    creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
-    
-    if creds_json:
-        # Se você armazenou a string JSON diretamente no .env
-        creds_info = json.loads(creds_json)
-        credentials = Credentials.from_service_account_info(creds_info, scopes=SCOPES)
-    elif os.path.exists("credentials.json"):
-        # Se você salvou o arquivo credentials.json na raiz do projeto
-        credentials = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
-    else:
-        raise ValueError("Google Drive credentials not configured properly.")
-
-    return build('drive', 'v3', credentials=credentials)
-
-
-async def upload_file_to_drive(
-    file_obj, 
-    filename: str, 
-    mime_type: str = "application/pdf", 
-    folder_id: Optional[str] = None
+async def upload_file_to_s3(
+    file_obj: BinaryIO,
+    filename: str,
+    mime_type: str = "application/pdf",
+    project_id: str = "general"
 ) -> Tuple[str, str]:
     """
-    Envia um arquivo para o Google Drive.
-    Retorna uma tupla (drive_file_id, web_view_link).
+    Realiza o upload seguro para o S3 e retorna uma Presigned URL pronta para exibição.
     """
-    service = _get_drive_service()
+    unique_file_id = str(uuid.uuid4())
+    s3_key = f"projects/{project_id}/{unique_file_id}_{filename}"
 
-    file_metadata = {'name': filename}
-    
-    # Se você quiser salvar em uma pasta específica compartilhada do Drive
-    target_folder = folder_id or os.getenv("GOOGLE_DRIVE_FOLDER_ID")
-    if target_folder:
-        file_metadata['parents'] = [target_folder]
-
-    media = MediaIoBaseUpload(
-        io.BytesIO(file_obj.read()), 
-        mimetype=mime_type, 
-        resumable=False
-    )
-
-    # Executa o upload e solicita de volta o ID e o link de visualização
-    uploaded_file = service.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields='id, webViewLink'
-    ).execute()
-
-    file_id = uploaded_file.get('id')
-    web_view_link = uploaded_file.get('webViewLink')
-
-    # Ajusta as permissões do arquivo enviado para que qualquer pessoa com o link possa visualizar
-    service.permissions().create(
-        fileId=file_id,
-        body={'type': 'anyone', 'role': 'reader'}
-    ).execute()
-
-    return file_id, web_view_link
-
-
-async def delete_file_from_drive(drive_file_id: str) -> bool:
-    """
-    Exclui permanentemente um arquivo do Google Drive dado o seu ID.
-    """
-    service = _get_drive_service()
     try:
-        service.files().delete(fileId=drive_file_id).execute()
-        return True
-    except Exception as e:
-        print(f"Erro ao deletar arquivo no Google Drive ({drive_file_id}): {e}")
-        return False
+        if hasattr(file_obj, "seek"):
+            file_obj.seek(0)
+
+        # 1. Envia o arquivo para o S3
+        s3_client.upload_fileobj(
+            file_obj,
+            AWS_BUCKET_NAME,
+            s3_key,
+            ExtraArgs={"ContentType": mime_type}
+        )
+
+        # 2. Gera a URL temporária com acesso direto para exibição do PDF (Válida por 7 dias)
+        url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': AWS_BUCKET_NAME, 'Key': s3_key},
+            ExpiresIn=604800
+        )
+
+        return s3_key, url
+
+    except (BotoCoreError, ClientError) as e:
+        print(f"❌ Erro S3: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error uploading file to AWS S3: {str(e)}"
+        )

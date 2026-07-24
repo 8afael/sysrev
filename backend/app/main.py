@@ -40,9 +40,9 @@ app.add_middleware(
 api = APIRouter(prefix="/sysrev/api")
 
 api.include_router(auth_router.router)
+api.include_router(docs_router.router)
 api.include_router(project_router.router)
 api.include_router(forms_router.router)
-api.include_router(docs_router.router)
 api.include_router(assignments_router.router)
 api.include_router(reviews_router.router)
 api.include_router(conflicts_router.router)

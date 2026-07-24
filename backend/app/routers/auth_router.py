@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_access_token
 from app.models.models import User
@@ -46,6 +46,30 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
         name=user.name,
         email=user.email,
     )
+
+@router.post("/token", response_model=TokenResponse)
+async def login_form(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_db),
+):
+    # form_data.username contém o email (OAuth2 chama-lhe sempre "username")
+    result = await db.execute(select(User).where(User.email == form_data.username))
+    user = result.scalar_one_or_none()
+
+    if not user or not verify_password(form_data.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Email or password invalid")
+
+    if not user.active:
+        raise HTTPException(status_code=403, detail="User disabled")
+
+    token = create_access_token(subject=user.id)
+    return TokenResponse(
+        access_token=token,
+        user_id=user.id,
+        name=user.name,
+        email=user.email,
+    )
+
 
 @router.get("/me", response_model=UserOut)
 async def me(current_user: User = Depends(get_current_user)):

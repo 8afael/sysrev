@@ -97,7 +97,6 @@ async def list_my_projects(
         selectinload(Project.members).joinedload(ProjectUser.user)
     )
 
-    # 🌟 Se NÃO for admin do sistema, filtra apenas os projetos onde ele está inserido
     is_system_admin = getattr(user, "is_admin", False)
 
     if not is_system_admin:
@@ -124,33 +123,6 @@ async def list_my_projects(
 
     result = await db.execute(stmt)
     return result.scalars().all()
-
-# @router.get("", response_model=List[ProjectOut])
-# async def list_my_projects(
-#     role: Optional[ProjectRole] = None,
-#     user: User = Depends(get_current_user),
-#     db: AsyncSession = Depends(get_db),
-# ):
-   
-#     stmt = (
-#         select(Project)
-#         .options(
-#             # 🌟 Atualizado aqui para puxar os membros do grupo de trabalho junto!
-#             selectinload(Project.work_groups).selectinload(WorkGroup.members),
-#             selectinload(Project.countries),
-#             selectinload(Project.languages),
-#             selectinload(Project.members).joinedload(ProjectUser.user)
-#         )
-#         .join(ProjectUser, ProjectUser.project_id == Project.id)
-#         .where(ProjectUser.user_id == user.id)
-#         .order_by(Project.created_at.desc())
-#     )
-#     if role is not None:
-#         stmt = stmt.where(ProjectUser.role == role)
-
-#     result = await db.execute(stmt)
-#     return result.scalars().all()
-
 
 @router.get("/{project_id}", response_model=ProjectOut)
 async def get_project(

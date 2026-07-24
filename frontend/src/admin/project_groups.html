@@ -185,6 +185,7 @@
             <tr class="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-gray-200">
               <th class="p-3">Name</th>
               <th class="p-3">Project Name</th>
+              <th class="p-3">Role</th>
               <th class="p-3 text-right">Action</th>
             </tr>
           </thead>
@@ -196,8 +197,14 @@
                   <div class="text-xs text-slate-500" x-text="getUserEmail(member.user_id)"></div>
                 </td>
                 <td class="p-3">
-                  <span class="inline-block text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-semibold" 
+                  <span class="inline-block text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-semibold"
                         x-text="getGroupName(member.work_group_id)"></span>
+                </td>
+                <!-- Role fixo como Reviewer 1 (sem edição) -->
+                <td class="p-3">
+                  <span class="inline-block text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md font-semibold">
+                    Reviewer 1
+                  </span>
                 </td>
                 <td class="p-3 text-right">
                   <button @click="removeMember(member)" class="text-xs text-red-600 hover:text-red-800 font-medium cursor-pointer">
@@ -208,7 +215,7 @@
             </template>
             <template x-if="members.length === 0">
               <tr>
-                <td colspan="3" class="p-6 text-center text-sm text-slate-500">
+                <td colspan="4" class="p-6 text-center text-sm text-slate-500">
                   No members added to this project yet. Use the sections above to select groups and add reviewers.
                 </td>
               </tr>
@@ -216,6 +223,7 @@
           </tbody>
         </table>
       </div>
+    </div>
 
       <!-- BOTTOM ACTIONS (CANCEL, SAVE AND FINISH SETUP) -->
       <div class="flex justify-end items-center gap-3 pt-6 border-t border-gray-200">
@@ -223,7 +231,7 @@
           Cancel
         </button>
         <button @click="finishSetup" class="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2.5 rounded-lg text-sm font-semibold shadow transition inline-block cursor-pointer">
-          Save Project Setup
+          Next: Documents
         </button>
       </div>
 
@@ -392,8 +400,6 @@
           }
         },
 
-        // VALIDAÇÃO EXIGINDO MIN. 1 WORKGROUP E MIN. 1 REVIEWER
-        // VALIDAÇÃO EXIGINDO MIN. 1 WORKGROUP E MIN. 1 REVIEWER
         validateSetup() {
           const hasGroups = this.selectedGroupIds && this.selectedGroupIds.length > 0;
           const hasMembers = this.members && this.members.length > 0;
@@ -419,7 +425,7 @@
 
           try {
             await this.saveGroups();
-            window.location.href = 'dashboard_admin.html';
+            window.location.href = `document_project.html?project_id=${this.projectId}`;
           } catch (e) {
             this.error = "Could not finish project setup: " + e.message;
           }

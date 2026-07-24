@@ -139,4 +139,19 @@ const api = {
           body: JSON.stringify(payload) 
       }),
 
+  getProjectForm: (projectId) => 
+    apiFetch(`/projects/${projectId}/forms`),
+
+  saveProjectForm: (projectId, payload) => 
+    apiFetch(`/projects/${projectId}/forms`, { 
+      method: 'POST', 
+      body: JSON.stringify(payload) // payload: { title, description, structure }
+    }),
+
+  submitFormResponse: (formId, payload) => 
+    apiFetch(`/forms/${formId}/responses`, { 
+      method: 'POST', 
+      body: JSON.stringify(payload) // payload: { assignment_id, answers }
+    }),
+
 };

@@ -3,7 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     Column, String, Boolean, DateTime, ForeignKey, Table, Text, Integer,
-    Enum as SAEnum, JSON, ARRAY, TypeDecorator
+    Enum as SAEnum, JSON, ARRAY, TypeDecorator, UniqueConstraint
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -39,6 +39,8 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
 
     memberships = relationship("ProjectUser", back_populates="user")
+
+    form_responses = relationship("FormResponse", back_populates="reviewer")
 
 project_work_groups = Table(
     "project_work_groups",
@@ -156,22 +158,40 @@ class ProjectUser(Base):
 
 
 class FormSchema(Base):
-    """Versioned analysis form. Never overwritten: a new edit = a new version."""
-    __tablename__ = "form_schemas"
+    __tablename__ = 'form_schemas'
 
+    # Padronizado para UUID(as_uuid=False) e gen_uuid
     id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    project_id = Column(UUID(as_uuid=False), ForeignKey("projects.id"), nullable=False)
-    protocol = Column(SAEnum(ProjectType), nullable=False)  # scientific(prisma) | technical(gt2)
-    group = Column(SAEnum(FieldGroup), nullable=False)
-    version = Column(Integer, default=1)
-    name = Column(String(255), nullable=False)
-    fields_json = Column(JSON, nullable=False)  # dynamic field structure
-    active = Column(Boolean, default=True)
-    created_by = Column(UUID(as_uuid=False), ForeignKey("users.id"))
+    project_id = Column(UUID(as_uuid=False), ForeignKey('projects.id', ondelete='CASCADE'), nullable=False)
+    title = Column(String(255), nullable=False, default="Untitled Form")
+    description = Column(String(1000), nullable=True)
+    # Guarda o layout: seções, perguntas, tipos, opções e regras de validação
+    structure = Column(JSON, nullable=False, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # Relacionamentos
     project = relationship("Project", back_populates="form_schemas")
+    responses = relationship("FormResponse", back_populates="form_schema", cascade="all, delete-orphan")
+    assignments = relationship("Assignment", back_populates="form_schema")
 
+
+class FormResponse(Base):
+    __tablename__ = 'form_responses'
+
+    # Padronizado para UUID(as_uuid=False) e gen_uuid
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    form_schema_id = Column(UUID(as_uuid=False), ForeignKey('form_schemas.id', ondelete='CASCADE'), nullable=False)
+    assignment_id = Column(UUID(as_uuid=False), ForeignKey('assignments.id', ondelete='CASCADE'), nullable=True)
+    reviewer_id = Column(UUID(as_uuid=False), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    
+    # Guarda as respostas no formato: {"question_id_1": "Resposta", "question_id_2": ["Opção A", "Opção B"]}
+    answers = Column(JSON, nullable=False, default=dict)
+    submitted_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relacionamentos de Chave Estrangeira
+    form_schema = relationship("FormSchema", back_populates="responses")
+    assignment = relationship("Assignment", back_populates="form_responses")
+    reviewer = relationship("User", back_populates="form_responses")
 
 class Document(Base):
     __tablename__ = "documents"
@@ -186,13 +206,16 @@ class Document(Base):
     access_restriction = Column(String(50), default="restricted")
     language = Column(String(10))
     country_region = Column(String(100))
-    submission_status = Column(SAEnum(SubmissionStatus), default=SubmissionStatus.registered)
+    submission_status = Column(SAEnum(SubmissionStatus, native_enum=True, create_type=False), 
+                               default=SubmissionStatus.registered, 
+                               nullable=True)
     duplicate_flag = Column(Boolean, default=False)
-    phase = Column(SAEnum(DocumentPhase), default=DocumentPhase.identification)
+    phase = Column(SAEnum(DocumentPhase, native_enum=True, create_type=False), 
+                   default=DocumentPhase.identification, 
+                   nullable=True)
     extra_metadata = Column(JSON, default=dict)  # renamed from metadata_json (reserved name)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    source_type = Column(String(100))
     drive_file_id = Column(String(255), nullable=True, index=True)
     file_size = Column(Integer, nullable=True)
 
@@ -205,18 +228,36 @@ class Assignment(Base):
     __tablename__ = "assignments"
 
     id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
-    document_id = Column(UUID(as_uuid=False), ForeignKey("documents.id"), nullable=False)
-    reviewer_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False)
-    form_schema_id = Column(UUID(as_uuid=False), ForeignKey("form_schemas.id"))
-    role = Column(SAEnum(AssignmentRole), default=AssignmentRole.reviewer1)
-    method = Column(SAEnum(AssignmentMethod), default=AssignmentMethod.manual)
-    status = Column(SAEnum(AssignmentStatus), default=AssignmentStatus.pending)
+    document_id = Column(UUID(as_uuid=False), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False)
+    reviewer_id = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    form_schema_id = Column(UUID(as_uuid=False), ForeignKey("form_schemas.id", ondelete="SET NULL"), nullable=True)
+    
+    role = Column(
+        SAEnum(AssignmentRole, name="assignmentrole", native_enum=True, create_type=False),
+        nullable=True
+    )
+    method = Column(
+        SAEnum(AssignmentMethod, name="assignmentmethod", native_enum=True, create_type=False),
+        nullable=True
+    )
+    status = Column(
+        SAEnum(AssignmentStatus, name="assignmentstatus", native_enum=True, create_type=False),
+        default=AssignmentStatus.pending,
+        nullable=True
+    )
+    
     deadline = Column(DateTime, nullable=True)
-    assigned_by = Column(UUID(as_uuid=False), ForeignKey("users.id"))
+    assigned_by = Column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    __table_args__ = (
+        UniqueConstraint('document_id', 'reviewer_id', name='uq_document_reviewer'),
+    )
+
     document = relationship("Document", back_populates="assignments")
-    review = relationship("Review", back_populates="assignment", uselist=False, cascade="all, delete-orphan")
+    review = relationship("Review", back_populates="assignment", uselist=False)
+    form_schema = relationship("FormSchema", back_populates="assignments")
+    form_responses = relationship("FormResponse", back_populates="assignment")
 
 
 class Review(Base):
