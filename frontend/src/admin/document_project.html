@@ -598,11 +598,51 @@
           e.target.value = '';
         },
 
-        removeDocument(index) {
-          this.documents.splice(index, 1);
-          if (this.distributionMethod === 'auto') {
-            this.runAutoDistribution();
-          }
+        async removeDocument(index) {
+            const doc = this.documents[index];
+            const isPersisted = doc.isSaved && doc.id && !String(doc.id).startsWith('temp_');
+
+            if (isPersisted) {
+                const confirmDelete = confirm(`Remove "${this.getDocTitle(doc)}" permanently? This cannot be undone.`);
+                if (!confirmDelete) return;
+
+                this.isLoading = true;
+                this.error = '';
+
+                try {
+                const token = typeof getToken === 'function' ? getToken() : '';
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '/sysrev/api';
+
+                const resp = await fetch(`${baseUrl}/projects/${this.projectId}/documents/${doc.id}`, {
+                    method: 'DELETE',
+                    headers,
+                });
+
+                if (resp.status === 401) {
+                    if (typeof logout === 'function') logout();
+                    throw new Error('Session expired. Login again.');
+                }
+
+                if (!resp.ok && resp.status !== 204) {
+                    const errData = await resp.json().catch(() => ({}));
+                    throw new Error(this.formatApiError(errData) || 'Failed to delete document.');
+                }
+                } catch (e) {
+                this.error = e.message || 'Error deleting document.';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                this.isLoading = false;
+                return; // não remove localmente se o servidor recusou
+                }
+
+                this.isLoading = false;
+            }
+
+            // Remove localmente: arquivo novo (ainda não salvo) ou já apagado com sucesso no servidor
+            this.documents.splice(index, 1);
+            if (this.distributionMethod === 'auto') {
+                this.runAutoDistribution();
+            }
         },
 
         removeMemberFromDoc(doc, memberId) {

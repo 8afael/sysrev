@@ -54,3 +54,24 @@ async def upload_file_to_s3(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error uploading file to AWS S3: {str(e)}"
         )
+
+async def delete_file_from_s3(s3_key: str) -> None:
+    """
+    Remove um arquivo do bucket S3 a partir da sua key.
+    Não lança erro se o arquivo já não existir (idempotente) —
+    apenas loga e propaga falhas reais de credencial/permissão/rede.
+    """
+    if not s3_key:
+        return
+
+    try:
+        s3_client.delete_object(
+            Bucket=AWS_BUCKET_NAME,
+            Key=s3_key
+        )
+    except (BotoCoreError, ClientError) as e:
+        print(f"❌ Erro ao excluir arquivo do S3 ({s3_key}): {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting file from AWS S3: {str(e)}"
+        )
