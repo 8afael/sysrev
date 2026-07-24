@@ -74,14 +74,47 @@
 
     <!-- Barra de Progresso dos Passos -->
     <div class="flex items-center justify-between mb-8 px-4">
+      <!-- Passo 1: Project Details (atual) -->
       <div class="flex items-center gap-2">
         <span class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm">1</span>
         <span class="text-sm font-semibold text-slate-900">Project Details</span>
       </div>
-      <div class="h-0.5 flex-1 bg-slate-200 mx-4"></div>
+      <div class="h-0.5 flex-1 bg-slate-200 mx-3"></div>
+
+      <!-- Passo 2: Work Groups & Members -->
+      <template x-if="projectId">
+        <a :href="'project_groups.html?project_id=' + projectId" class="flex items-center gap-2 group cursor-pointer">
+          <span class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 group-hover:bg-slate-300 flex items-center justify-center font-semibold text-sm">2</span>
+          <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Work Groups</span>
+        </a>
+      </template>
+      <template x-if="!projectId">
+        <div class="flex items-center gap-2 opacity-50">
+          <span class="w-8 h-8 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-semibold text-sm">2</span>
+          <span class="text-sm font-medium text-slate-500">Work Groups</span>
+        </div>
+      </template>
+      <div class="h-0.5 flex-1 bg-slate-200 mx-3"></div>
+
+      <!-- Passo 3: Documents -->
+      <template x-if="projectId">
+        <a :href="'document_project.html?project_id=' + projectId" class="flex items-center gap-2 group cursor-pointer">
+          <span class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 group-hover:bg-slate-300 flex items-center justify-center font-semibold text-sm">3</span>
+          <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Documents</span>
+        </a>
+      </template>
+      <template x-if="!projectId">
+        <div class="flex items-center gap-2 opacity-50">
+          <span class="w-8 h-8 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-semibold text-sm">3</span>
+          <span class="text-sm font-medium text-slate-500">Documents</span>
+        </div>
+      </template>
+      <div class="h-0.5 flex-1 bg-slate-200 mx-3"></div>
+
+      <!-- Passo 4: Form Builder -->
       <div class="flex items-center gap-2 opacity-50">
-        <span class="w-8 h-8 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-semibold text-sm">2</span>
-        <span class="text-sm font-medium text-slate-500">Work Groups & Members</span>
+        <span class="w-8 h-8 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-semibold text-sm">4</span>
+        <span class="text-sm font-medium text-slate-500">Form Builder</span>
       </div>
     </div>
 

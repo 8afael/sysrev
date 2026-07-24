@@ -70,18 +70,34 @@
 
     <!-- Barra de etapas -->
     <div class="flex items-center justify-between mb-8 px-4">
+      <!-- Passo 1: Project Details (atual) -->
       <div class="flex items-center gap-2">
         <span class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm">1</span>
         <span class="text-sm font-semibold text-slate-900">Project Details</span>
       </div>
-      <div class="h-0.5 flex-1 bg-slate-200 mx-4"></div>
-      
-      <button @click="saveAndGoToGroups()" :disabled="saving" 
-              class="flex items-center gap-2 transition hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed">
-        <span class="w-8 h-8 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-semibold text-sm" x-show="!saving">2</span>
+      <div class="h-0.5 flex-1 bg-slate-200 mx-3"></div>
+
+      <!-- Passo 2: Work Groups & Members (salva antes de navegar) -->
+      <button @click="saveAndGoToGroups()" :disabled="saving"
+              class="flex items-center gap-2 group transition hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed">
+        <span class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 group-hover:bg-slate-300 flex items-center justify-center font-semibold text-sm" x-show="!saving">2</span>
         <span class="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full" x-show="saving"></span>
-        <span class="text-sm font-medium text-slate-500 underline decoration-dotted">Work Groups & Members</span>
+        <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Work Groups & Members</span>
       </button>
+      <div class="h-0.5 flex-1 bg-slate-200 mx-3"></div>
+
+      <!-- Passo 3: Documents -->
+      <a :href="'document_project.html?project_id=' + projectId" class="flex items-center gap-2 group cursor-pointer">
+        <span class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 group-hover:bg-slate-300 flex items-center justify-center font-semibold text-sm">3</span>
+        <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900">Documents</span>
+      </a>
+      <div class="h-0.5 flex-1 bg-slate-200 mx-3"></div>
+
+      <!-- Passo 4: Form Builder -->
+      <div class="flex items-center gap-2 opacity-50">
+        <span class="w-8 h-8 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-semibold text-sm">4</span>
+        <span class="text-sm font-medium text-slate-500">Form Builder</span>
+      </div>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
@@ -202,7 +218,7 @@
 
             <!-- Botão 1: Salvar e Ir para os Grupos -->
             <button type="button" @click="saveAndGoToGroups()" class="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-50">
-              Next: Work Groups & Members
+              Next: Work Groups
             </button>
 
             <!-- Botão 2: Salvar e Concluir (Voltar pra Dashboard) -->

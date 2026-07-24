@@ -62,16 +62,32 @@
   <!-- 2. CONTEÚDO PRINCIPAL (MÓDULOS DO PASSO 2) -->
   <main class="flex-1 max-w-4xl w-full mx-auto p-6 my-8 space-y-8">
 
-    <!-- PROGRESS STEPS WITH LINK TO GO BACK -->
+   <!-- PROGRESS STEPS WITH LINK TO GO BACK -->
     <div class="flex items-center justify-between px-4">
       <a :href="'new_project.html?project_id=' + projectId" class="flex items-center gap-2 group hover:opacity-100 transition cursor-pointer">
         <span class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 group-hover:bg-slate-300 flex items-center justify-center font-semibold text-sm">1</span>
         <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900 group-hover:underline">Project Details</span>
       </a>
       <div class="h-0.5 flex-1 bg-slate-200 mx-4"></div>
+
+      <!-- Passo 2: Work Groups & Members (atual) -->
       <div class="flex items-center gap-2">
         <span class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm">2</span>
-        <span class="text-sm font-semibold text-slate-900">Work Groups & Members</span>
+        <span class="text-sm font-semibold text-slate-900">Work Groups</span>
+      </div>
+      <div class="h-0.5 flex-1 bg-slate-200 mx-4"></div>
+
+      <!-- Passo 3: Documents -->
+      <a :href="'document_project.html?project_id=' + projectId" class="flex items-center gap-2 group hover:opacity-100 transition cursor-pointer">
+        <span class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 group-hover:bg-slate-300 flex items-center justify-center font-semibold text-sm">3</span>
+        <span class="text-sm font-medium text-slate-600 group-hover:text-slate-900 group-hover:underline">Documents</span>
+      </a>
+      <div class="h-0.5 flex-1 bg-slate-200 mx-4"></div>
+
+      <!-- Passo 4: Form Builder -->
+      <div class="flex items-center gap-2 opacity-50">
+        <span class="w-8 h-8 rounded-full bg-slate-300 text-slate-600 flex items-center justify-center font-semibold text-sm">4</span>
+        <span class="text-sm font-medium text-slate-500">Form Builder</span>
       </div>
     </div>
 
